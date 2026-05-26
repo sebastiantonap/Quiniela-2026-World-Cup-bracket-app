@@ -17,11 +17,7 @@ export interface Database {
   public: {
     Tables: {
       groups: {
-        Row: {
-          id: string
-          name: string
-          created_at: string
-        }
+        Row: { id: string; name: string; created_at: string }
         Insert: Omit<Database['public']['Tables']['groups']['Row'], 'created_at'>
         Update: Partial<Database['public']['Tables']['groups']['Insert']>
       }
@@ -73,7 +69,7 @@ export interface Database {
       entries: {
         Row: {
           id: string
-          user_id: string
+          user_email: string
           name: string
           total_points: number
           created_at: string
@@ -104,15 +100,40 @@ export interface Database {
         >
         Update: Partial<Database['public']['Tables']['predictions']['Insert']>
       }
+      group_qualifications: {
+        Row: {
+          id: string
+          entry_id: string
+          group_id: string
+          predicted_1st_team_id: string | null
+          predicted_2nd_team_id: string | null
+          predicted_3rd_team_id: string | null
+          points_awarded: number | null
+          calculated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['group_qualifications']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['group_qualifications']['Insert']>
+      }
+      user_sessions: {
+        Row: { token: string; email: string; created_at: string }
+        Insert: Omit<Database['public']['Tables']['user_sessions']['Row'], 'created_at'>
+        Update: Partial<Database['public']['Tables']['user_sessions']['Insert']>
+      }
     }
     Views: {
       leaderboard: {
         Row: {
           entry_id: string
-          entry_name: string
           user_email: string
+          entry_name: string
           total_points: number
           created_at: string
+          predictions_count: number
           rank: number
         }
       }

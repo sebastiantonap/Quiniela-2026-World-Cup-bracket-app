@@ -1,10 +1,11 @@
 'use server'
 
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+import { getSessionEmail } from '@/lib/session'
 import type { QualState } from '@/types/app'
 
 export async function getQualificationsForEntry(entryId: string): Promise<QualState> {
-  const supabase = await getSupabaseServerClient()
+  const supabase = getSupabaseAdminClient()
 
   const { data } = await supabase
     .from('group_qualifications')
@@ -30,20 +31,18 @@ export async function upsertQualification(
   predicted2nd: string | null,
   predicted3rd: string | null
 ): Promise<{ error?: string }> {
-  const supabase = await getSupabaseServerClient()
+  const email = await getSessionEmail()
+  if (!email) return { error: 'session_expired' }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'session_expired' }
+  const supabase = getSupabaseAdminClient()
 
   const { data: entry } = await supabase
     .from('entries')
     .select('id')
     .eq('id', entryId)
-    .eq('user_id', user.id)
+    .eq('user_email', email)
     .single()
-  if (!entry) return { error: 'Entry not found' }
+  if (!entry) return { error: 'Not authorized' }
 
   const { data: round } = await supabase
     .from('rounds')

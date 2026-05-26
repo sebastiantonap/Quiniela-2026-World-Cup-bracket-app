@@ -18,34 +18,32 @@ interface LeaderboardTableProps {
   rows: LeaderboardRow[]
   currentPage: number
   totalPages: number
-  currentUserId: string | null
+  currentUserEmail: string | null
 }
 
-export function LeaderboardTable({ rows, currentPage, totalPages, currentUserId }: LeaderboardTableProps) {
+export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEmail }: LeaderboardTableProps) {
   return (
     <div>
       <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-700 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="px-4 py-3 w-12">Rank</th>
+              <th className="w-12 px-4 py-3">Rank</th>
               <th className="px-4 py-3">Bracket</th>
-              <th className="px-4 py-3 hidden sm:table-cell">User</th>
-              <th className="px-4 py-3 hidden md:table-cell text-center">Picks</th>
+              <th className="hidden px-4 py-3 sm:table-cell">User</th>
+              <th className="hidden px-4 py-3 text-center md:table-cell">Picks</th>
               <th className="px-4 py-3 text-right">Points</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/60">
             {rows.map((row) => {
-              const isMe = currentUserId === row.user_id
+              const isMe = currentUserEmail !== null && currentUserEmail === row.user_email
               const { icon, classes } = rankDisplay(row.rank)
               return (
                 <tr
                   key={row.entry_id}
                   className={`transition ${
-                    isMe
-                      ? 'bg-amber-500/10 hover:bg-amber-500/15'
-                      : 'hover:bg-slate-700/40'
+                    isMe ? 'bg-amber-500/10 hover:bg-amber-500/15' : 'hover:bg-slate-700/40'
                   }`}
                 >
                   <td className={`px-4 py-3 ${classes}`}>
@@ -61,10 +59,10 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserId 
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 hidden sm:table-cell">
+                  <td className="hidden px-4 py-3 text-slate-400 sm:table-cell">
                     {maskEmail(row.user_email)}
                   </td>
-                  <td className="px-4 py-3 text-center text-slate-500 hidden md:table-cell">
+                  <td className="hidden px-4 py-3 text-center text-slate-500 md:table-cell">
                     {row.predictions_count}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -79,7 +77,6 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserId 
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">
           {currentPage > 1 && (

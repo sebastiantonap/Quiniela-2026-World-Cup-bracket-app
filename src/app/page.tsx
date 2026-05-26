@@ -34,15 +34,15 @@ export default function LandingPage() {
 
         {/* Auth card */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800 p-8">
-          <h2 className="mb-1 text-lg font-semibold text-slate-100">Sign in to play</h2>
+          <h2 className="mb-1 text-lg font-semibold text-slate-100">Enter to play</h2>
           <p className="mb-6 text-sm text-slate-400">
-            Enter your email to get a magic link — no password needed.
+            Just your email — no password, no confirmation needed.
           </p>
           <MagicLinkForm />
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          No account needed — just your email address.
+          Max 2 brackets per email address.
         </p>
       </div>
     </main>

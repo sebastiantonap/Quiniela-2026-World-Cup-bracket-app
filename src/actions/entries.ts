@@ -1,62 +1,60 @@
 'use server'
 
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+import { getSessionEmail } from '@/lib/session'
 import { revalidatePath } from 'next/cache'
 import type { Entry } from '@/types/app'
 
 export async function getEntries(): Promise<Entry[]> {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const email = await getSessionEmail()
+  if (!email) return []
 
+  const supabase = getSupabaseAdminClient()
   const { data } = await supabase
     .from('entries')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_email', email)
     .order('created_at', { ascending: false })
 
   return data ?? []
 }
 
 export async function getEntry(id: string): Promise<Entry | null> {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const email = await getSessionEmail()
+  if (!email) return null
 
+  const supabase = getSupabaseAdminClient()
   const { data } = await supabase
     .from('entries')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_email', email)
     .single()
 
   return data ?? null
 }
 
 export async function createEntry(name: string): Promise<{ id?: string; error?: string }> {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const email = await getSessionEmail()
+  if (!email) return { error: 'Not signed in.' }
+
+  const supabase = getSupabaseAdminClient()
 
   const { count } = await supabase
     .from('entries')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    .eq('user_email', email)
 
-  if ((count ?? 0) >= 2) {
-    return { error: 'Maximum 2 brackets per account.' }
-  }
+  if ((count ?? 0) >= 2) return { error: 'Maximum 2 brackets per account.' }
 
   const { data, error } = await supabase
     .from('entries')
-    .insert({ user_id: user.id, name: name.trim() })
+    .insert({ user_email: email, name: name.trim() })
     .select('id')
     .single()
 
   if (error) {
-    if (error.code === '23505') {
-      return { error: 'You already have an entry with that name.' }
-    }
+    if (error.code === '23505') return { error: 'You already have a bracket with that name.' }
     return { error: error.message }
   }
 
@@ -65,15 +63,15 @@ export async function createEntry(name: string): Promise<{ id?: string; error?: 
 }
 
 export async function deleteEntry(id: string): Promise<{ error?: string }> {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const email = await getSessionEmail()
+  if (!email) return { error: 'Not signed in.' }
 
+  const supabase = getSupabaseAdminClient()
   const { error } = await supabase
     .from('entries')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_email', email)
 
   if (error) return { error: error.message }
   revalidatePath('/dashboard')

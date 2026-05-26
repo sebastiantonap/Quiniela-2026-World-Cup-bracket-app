@@ -1,6 +1,6 @@
 import { Nav } from '@/components/Nav'
 import { getLeaderboard } from '@/actions/leaderboard'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSessionEmail } from '@/lib/session'
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable'
 import Link from 'next/link'
 
@@ -13,19 +13,17 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(pageStr ?? '1', 10))
   const pageSize = 50
 
-  const supabase = await getSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [{ rows, total }, currentUserEmail] = await Promise.all([
+    getLeaderboard(page, pageSize),
+    getSessionEmail(),
+  ])
 
-  const { rows, total } = await getLeaderboard(page, pageSize)
   const totalPages = Math.ceil(total / pageSize)
 
   return (
     <div className="min-h-screen">
       <Nav />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-100">Leaderboard</h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -58,7 +56,6 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
           <p className="mt-3 text-center text-xs text-slate-500">Ties split pro-rata</p>
         </div>
 
-        {/* Table */}
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-700 bg-slate-800 p-12 text-center">
             <p className="text-slate-400">No entries yet. Be the first!</p>
@@ -68,7 +65,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
             rows={rows}
             currentPage={page}
             totalPages={totalPages}
-            currentUserId={user?.id ?? null}
+            currentUserEmail={currentUserEmail}
           />
         )}
 

@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSessionEmail } from '@/lib/session'
 import { getEntries } from '@/actions/entries'
 import { Nav } from '@/components/Nav'
 import { CreateEntryButton } from '@/components/dashboard/CreateEntryButton'
@@ -6,11 +6,7 @@ import { EntryCard } from '@/components/dashboard/EntryCard'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
-  const supabase = await getSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const email = await getSessionEmail()
   const entries = await getEntries()
 
   return (
@@ -20,7 +16,7 @@ export default async function DashboardPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-100">My Brackets</h1>
-            <p className="mt-1 text-sm text-slate-400">{user?.email}</p>
+            <p className="mt-1 text-sm text-slate-400">{email}</p>
           </div>
           {entries.length < 2 && <CreateEntryButton />}
         </div>

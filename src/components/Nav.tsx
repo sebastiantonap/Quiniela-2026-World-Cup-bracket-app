@@ -1,12 +1,9 @@
 import Link from 'next/link'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSessionEmail } from '@/lib/session'
 import { signOut } from '@/actions/auth'
 
 export async function Nav() {
-  const supabase = await getSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const email = await getSessionEmail()
 
   return (
     <nav className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
@@ -29,7 +26,7 @@ export async function Nav() {
           >
             My Entries
           </Link>
-          {user && (
+          {email && (
             <form action={signOut}>
               <button
                 type="submit"

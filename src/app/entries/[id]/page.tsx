@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getEntry } from '@/actions/entries'
 import { getPredictionsForEntry } from '@/actions/predictions'
 import { getQualificationsForEntry } from '@/actions/qualifications'
@@ -17,7 +17,7 @@ export default async function EntryPage({ params }: PageProps) {
   const entry = await getEntry(id)
   if (!entry) notFound()
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = getSupabaseAdminClient()
 
   const [
     { data: roundsData },

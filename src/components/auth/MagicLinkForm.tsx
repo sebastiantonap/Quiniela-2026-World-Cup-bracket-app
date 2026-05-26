@@ -1,47 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { signInWithMagicLink } from '@/actions/auth'
+import { signIn } from '@/actions/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 export function MagicLinkForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
-    const result = await signInWithMagicLink(email)
-
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setSent(true)
-    }
+    const result = await signIn(email)
+    // signIn redirects on success; if we get here it's an error
+    if (result?.error) setError(result.error)
     setLoading(false)
-  }
-
-  if (sent) {
-    return (
-      <div className="rounded-xl border border-green-800/40 bg-green-900/20 p-6 text-center">
-        <div className="mb-2 text-2xl">📬</div>
-        <h3 className="font-semibold text-green-400">Check your inbox</h3>
-        <p className="mt-1 text-sm text-green-500">
-          We sent a magic link to <strong>{email}</strong>. Click it to sign in.
-        </p>
-        <button
-          onClick={() => { setSent(false); setEmail('') }}
-          className="mt-4 text-sm text-green-400 underline hover:text-green-300"
-        >
-          Use a different email
-        </button>
-      </div>
-    )
   }
 
   return (
@@ -58,7 +34,7 @@ export function MagicLinkForm() {
         error={error ?? undefined}
       />
       <Button type="submit" loading={loading} size="lg">
-        Send magic link
+        Enter →
       </Button>
     </form>
   )

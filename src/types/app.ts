@@ -28,9 +28,8 @@ export interface EntryWithPredictions extends Entry {
 
 export interface LeaderboardRow {
   entry_id: string
-  user_id: string
-  entry_name: string
   user_email: string
+  entry_name: string
   total_points: number
   created_at: string
   predictions_count: number
