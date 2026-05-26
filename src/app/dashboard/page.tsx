@@ -7,7 +7,9 @@ import Link from 'next/link'
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const entries = await getEntries()
 
@@ -17,30 +19,40 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">My Brackets</h1>
-            <p className="mt-1 text-sm text-gray-500">{user?.email}</p>
+            <h1 className="text-2xl font-bold text-slate-100">My Brackets</h1>
+            <p className="mt-1 text-sm text-slate-400">{user?.email}</p>
           </div>
-          <CreateEntryButton />
+          {entries.length < 2 && <CreateEntryButton />}
         </div>
 
         {entries.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+          <div className="rounded-2xl border-2 border-dashed border-slate-700 p-12 text-center">
             <div className="mb-3 text-4xl">📋</div>
-            <h3 className="font-semibold text-gray-900">No brackets yet</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="font-semibold text-slate-100">No brackets yet</h3>
+            <p className="mt-1 text-sm text-slate-400">
               Create your first bracket to start predicting matches.
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {entries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {entries.map((entry) => (
+                <EntryCard key={entry.id} entry={entry} />
+              ))}
+            </div>
+            {entries.length >= 2 && (
+              <p className="mt-4 text-center text-sm text-slate-500">
+                Maximum 2 brackets per account reached.
+              </p>
+            )}
+          </>
         )}
 
         <div className="mt-8 text-center">
-          <Link href="/leaderboard" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
+          <Link
+            href="/leaderboard"
+            className="text-sm text-amber-400 transition hover:text-amber-300 hover:underline"
+          >
             View leaderboard →
           </Link>
         </div>

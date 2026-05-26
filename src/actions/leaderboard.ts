@@ -5,7 +5,7 @@ import type { LeaderboardRow } from '@/types/app'
 
 export async function getLeaderboard(
   page = 1,
-  pageSize = 25
+  pageSize = 50
 ): Promise<{ rows: LeaderboardRow[]; total: number }> {
   const supabase = await getSupabaseServerClient()
 

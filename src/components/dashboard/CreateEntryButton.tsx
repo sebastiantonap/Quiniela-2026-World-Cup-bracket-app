@@ -34,9 +34,9 @@ export function CreateEntryButton() {
       <Button onClick={() => setOpen(true)}>+ New bracket</Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-semibold">Create new bracket</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
+            <h2 className="mb-4 text-lg font-semibold text-slate-100">Create new bracket</h2>
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <Input
                 id="bracket-name"

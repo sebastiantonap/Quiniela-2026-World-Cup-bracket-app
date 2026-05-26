@@ -28,10 +28,12 @@ export interface EntryWithPredictions extends Entry {
 
 export interface LeaderboardRow {
   entry_id: string
+  user_id: string
   entry_name: string
   user_email: string
   total_points: number
   created_at: string
+  predictions_count: number
   rank: number
 }
 
@@ -46,3 +48,12 @@ export interface TeamStanding {
   goal_difference: number
   points: number
 }
+
+export interface QualPick {
+  predicted1st: string | null
+  predicted2nd: string | null
+  predicted3rd: string | null
+  pointsAwarded: number | null
+}
+
+export type QualState = Record<string, QualPick>

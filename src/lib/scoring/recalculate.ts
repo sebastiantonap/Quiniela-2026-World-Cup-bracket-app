@@ -2,19 +2,46 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { calculatePoints } from './engine'
-import type { RoundName } from '@/types/app'
+import { computeGroupStandings } from '@/lib/standings/groupStandings'
+import type { RoundName, Team, MatchWithTeams } from '@/types/app'
+
+// Qualification scoring per group
+function scoreQualification(
+  predicted1st: string | null,
+  predicted2nd: string | null,
+  predicted3rd: string | null,
+  actualStandings: { teamId: string }[]
+): number {
+  const actual1st = actualStandings[0]?.teamId ?? null
+  const actual2nd = actualStandings[1]?.teamId ?? null
+  const actual3rd = actualStandings[2]?.teamId ?? null
+  const qualifyingIds = [actual1st, actual2nd].filter(Boolean) as string[]
+
+  let pts = 0
+
+  if (predicted1st) {
+    if (predicted1st === actual1st) pts += 4
+    else if (qualifyingIds.includes(predicted1st)) pts += 1
+  }
+
+  if (predicted2nd) {
+    if (predicted2nd === actual2nd) pts += 3
+    else if (qualifyingIds.includes(predicted2nd)) pts += 1
+  }
+
+  if (predicted3rd && actual3rd) {
+    if (predicted3rd === actual3rd) pts += 2
+  }
+
+  return pts
+}
 
 export async function recalculateRound(roundId: string): Promise<{ error?: string }> {
   const supabase = getSupabaseAdminClient()
 
-  // Mark round as calculating
-  await supabase
-    .from('rounds')
-    .update({ calculating: true })
-    .eq('id', roundId)
+  await supabase.from('rounds').update({ calculating: true }).eq('id', roundId)
 
   try {
-    // Fetch round info
     const { data: round } = await supabase
       .from('rounds')
       .select('name')
@@ -23,7 +50,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     if (!round) return { error: 'Round not found' }
 
-    // Fetch all confirmed matches in this round
+    // ---------- Match predictions ----------
     const { data: matches } = await supabase
       .from('matches')
       .select('id, home_score, away_score, winner_team_id')
@@ -37,7 +64,6 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     const matchIds = matches.map((m) => m.id)
     const matchMap = new Map(matches.map((m) => [m.id, m]))
 
-    // Fetch all predictions for these matches
     const { data: predictions } = await supabase
       .from('predictions')
       .select('id, entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id')
@@ -45,8 +71,8 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     if (!predictions) return { error: 'Failed to fetch predictions' }
 
-    // Calculate points per prediction
     const now = new Date().toISOString()
+
     const updatedPredictions = predictions.map((pred) => {
       const match = matchMap.get(pred.match_id)!
       const points = calculatePoints(
@@ -62,30 +88,82 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         },
         round.name as RoundName
       )
-      return { id: pred.id, entry_id: pred.entry_id, points_awarded: points, calculated_at: now }
+      return { id: pred.id, entry_id: pred.entry_id, points_awarded: points }
     })
 
-    // Batch update predictions
     for (const pred of updatedPredictions) {
       await supabase
         .from('predictions')
-        .update({ points_awarded: pred.points_awarded, calculated_at: pred.calculated_at })
+        .update({ points_awarded: pred.points_awarded, calculated_at: now })
         .eq('id', pred.id)
     }
 
-    // Re-sum total_points for each affected entry
     const affectedEntryIds = Array.from(new Set(updatedPredictions.map((p) => p.entry_id)))
 
+    // ---------- Group qualification scoring (group_stage only) ----------
+    if (round.name === 'group_stage') {
+      const { data: groups } = await supabase.from('groups').select('id, name')
+
+      for (const group of groups ?? []) {
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('group_id', group.id)
+
+        const { data: groupMatchesData } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            home_team:teams!matches_home_team_id_fkey(*),
+            away_team:teams!matches_away_team_id_fkey(*)
+          `)
+          .eq('group_id', group.id)
+          .eq('result_confirmed', true)
+
+        const teams = (teamsData ?? []) as Team[]
+        const groupMatches = (groupMatchesData ?? []) as unknown as MatchWithTeams[]
+
+        if (groupMatches.length < 6) continue // not all confirmed
+
+        const standings = computeGroupStandings(teams, groupMatches)
+        const actualStandings = standings.map((s) => ({ teamId: s.team.id }))
+
+        const { data: quals } = await supabase
+          .from('group_qualifications')
+          .select('id, entry_id, predicted_1st_team_id, predicted_2nd_team_id, predicted_3rd_team_id')
+          .eq('group_id', group.id)
+          .in('entry_id', affectedEntryIds)
+
+        for (const qual of quals ?? []) {
+          const pts = scoreQualification(
+            qual.predicted_1st_team_id,
+            qual.predicted_2nd_team_id,
+            qual.predicted_3rd_team_id,
+            actualStandings
+          )
+          await supabase
+            .from('group_qualifications')
+            .update({ points_awarded: pts, calculated_at: now })
+            .eq('id', qual.id)
+        }
+      }
+    }
+
+    // ---------- Re-sum total_points (match predictions + qualifications) ----------
     for (const entryId of affectedEntryIds) {
       const { data: allPreds } = await supabase
         .from('predictions')
         .select('points_awarded')
         .eq('entry_id', entryId)
 
-      const total = (allPreds ?? []).reduce(
-        (sum, p) => sum + (p.points_awarded ?? 0),
-        0
-      )
+      const { data: allQuals } = await supabase
+        .from('group_qualifications')
+        .select('points_awarded')
+        .eq('entry_id', entryId)
+
+      const total =
+        (allPreds ?? []).reduce((sum, p) => sum + (p.points_awarded ?? 0), 0) +
+        (allQuals ?? []).reduce((sum, q) => sum + (q.points_awarded ?? 0), 0)
 
       await supabase
         .from('entries')
@@ -95,9 +173,6 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     return {}
   } finally {
-    await supabase
-      .from('rounds')
-      .update({ calculating: false })
-      .eq('id', roundId)
+    await supabase.from('rounds').update({ calculating: false }).eq('id', roundId)
   }
 }

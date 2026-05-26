@@ -11,16 +11,10 @@ interface KnockoutTabProps {
   saving: Record<string, boolean>
 }
 
-export function KnockoutTab({
-  matches,
-  predictions,
-  isEditable,
-  onUpdate,
-  saving,
-}: KnockoutTabProps) {
+export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving }: KnockoutTabProps) {
   if (matches.length === 0) {
     return (
-      <div className="py-16 text-center text-gray-400">
+      <div className="py-16 text-center text-slate-500">
         <p className="text-lg">No matches scheduled yet for this round.</p>
       </div>
     )

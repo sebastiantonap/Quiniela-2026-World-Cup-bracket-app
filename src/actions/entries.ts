@@ -38,6 +38,15 @@ export async function createEntry(name: string): Promise<{ id?: string; error?: 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { count } = await supabase
+    .from('entries')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if ((count ?? 0) >= 2) {
+    return { error: 'Maximum 2 brackets per account.' }
+  }
+
   const { data, error } = await supabase
     .from('entries')
     .insert({ user_id: user.id, name: name.trim() })

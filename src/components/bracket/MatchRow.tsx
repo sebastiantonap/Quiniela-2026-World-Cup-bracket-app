@@ -15,12 +15,8 @@ interface MatchRowProps {
 }
 
 export function MatchRow({ match, prediction, isEditable, onUpdate, saving, error }: MatchRowProps) {
-  const [localHome, setLocalHome] = useState<number | null>(
-    prediction?.predicted_home ?? null
-  )
-  const [localAway, setLocalAway] = useState<number | null>(
-    prediction?.predicted_away ?? null
-  )
+  const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
+  const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
 
   const homeTeam = match.home_team
   const awayTeam = match.away_team
@@ -43,10 +39,16 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
   }
 
   return (
-    <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${error ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
+    <div
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+        error ? 'bg-red-900/20' : 'hover:bg-slate-700/40'
+      }`}
+    >
       {/* Home team */}
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-        <span className="truncate text-right font-medium">{homeFlag} {homeName}</span>
+        <span className="truncate text-right font-medium text-slate-200">
+          {homeFlag} {homeName}
+        </span>
       </div>
 
       {/* Score */}
@@ -54,16 +56,16 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
         {isEditable ? (
           <>
             <ScoreInput value={localHome} onChange={handleHomeChange} />
-            <span className="text-gray-400">-</span>
+            <span className="text-slate-500">-</span>
             <ScoreInput value={localAway} onChange={handleAwayChange} />
           </>
         ) : (
           <div className="flex items-center gap-1">
-            <span className="w-12 rounded-lg bg-gray-100 py-1.5 text-center font-semibold text-gray-600">
+            <span className="w-12 rounded-lg bg-slate-700 py-1.5 text-center font-semibold text-slate-300">
               {prediction?.predicted_home ?? '-'}
             </span>
-            <span className="text-gray-400">-</span>
-            <span className="w-12 rounded-lg bg-gray-100 py-1.5 text-center font-semibold text-gray-600">
+            <span className="text-slate-500">-</span>
+            <span className="w-12 rounded-lg bg-slate-700 py-1.5 text-center font-semibold text-slate-300">
               {prediction?.predicted_away ?? '-'}
             </span>
           </div>
@@ -72,20 +74,21 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
 
       {/* Away team */}
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <span className="truncate font-medium">{awayFlag} {awayName}</span>
+        <span className="truncate font-medium text-slate-200">
+          {awayFlag} {awayName}
+        </span>
       </div>
 
       {/* Points / status */}
-      <div className="flex w-16 flex-shrink-0 items-center justify-end">
-        {saving && <span className="text-xs text-gray-400">saving…</span>}
+      <div className="flex w-14 flex-shrink-0 items-center justify-end">
+        {saving && <span className="text-xs text-slate-500">saving…</span>}
         {hasResult && pts !== null && pts !== undefined && (
-          pts > 0 ? <PointsBadge points={pts} /> : <span className="text-xs text-gray-400">0 pts</span>
-        )}
-        {hasResult && prediction && pts === null && (
-          <span className="text-xs text-gray-400">no pick</span>
+          pts > 0
+            ? <PointsBadge points={pts} />
+            : <span className="text-xs text-slate-500">0</span>
         )}
         {hasResult && !prediction && (
-          <span className="text-xs text-gray-400">no pick</span>
+          <span className="text-xs text-slate-500">—</span>
         )}
       </div>
     </div>

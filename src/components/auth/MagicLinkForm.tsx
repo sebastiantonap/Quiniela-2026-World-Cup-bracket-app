@@ -28,15 +28,15 @@ export function MagicLinkForm() {
 
   if (sent) {
     return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
+      <div className="rounded-xl border border-green-800/40 bg-green-900/20 p-6 text-center">
         <div className="mb-2 text-2xl">📬</div>
-        <h3 className="font-semibold text-green-800">Check your inbox</h3>
-        <p className="mt-1 text-sm text-green-700">
+        <h3 className="font-semibold text-green-400">Check your inbox</h3>
+        <p className="mt-1 text-sm text-green-500">
           We sent a magic link to <strong>{email}</strong>. Click it to sign in.
         </p>
         <button
           onClick={() => { setSent(false); setEmail('') }}
-          className="mt-4 text-sm text-green-600 underline hover:text-green-700"
+          className="mt-4 text-sm text-green-400 underline hover:text-green-300"
         >
           Use a different email
         </button>

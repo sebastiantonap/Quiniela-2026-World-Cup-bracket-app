@@ -1,13 +1,13 @@
 import type { RoundName } from '@/types/app'
 
 export const ROUND_POINTS: Record<RoundName, { winner: number; bonus: number }> = {
-  group_stage:   { winner: 1,  bonus: 2  },
-  round_of_32:   { winner: 2,  bonus: 3  },
-  round_of_16:   { winner: 4,  bonus: 5  },
-  quarterfinals: { winner: 6,  bonus: 7  },
-  semifinals:    { winner: 8,  bonus: 9  },
-  third_place:   { winner: 3,  bonus: 4  },
-  final:         { winner: 10, bonus: 11 },
+  group_stage:   { winner: 2,  bonus: 2  },
+  round_of_32:   { winner: 3,  bonus: 2  },
+  round_of_16:   { winner: 5,  bonus: 2  },
+  quarterfinals: { winner: 7,  bonus: 2  },
+  semifinals:    { winner: 9,  bonus: 4  },
+  third_place:   { winner: 11, bonus: 4  },
+  final:         { winner: 16, bonus: 4  },
 }
 
 export const ROUND_LABELS: Record<RoundName, string> = {

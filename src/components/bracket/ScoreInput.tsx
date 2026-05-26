@@ -25,7 +25,7 @@ export function ScoreInput({ value, onChange, disabled, className = '', ...props
         }
       }}
       disabled={disabled}
-      className={`w-12 rounded-lg border border-gray-300 px-2 py-1.5 text-center text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${className}`}
+      className={`w-12 rounded-lg border border-slate-600 bg-slate-700 px-2 py-1.5 text-center text-sm font-semibold text-slate-100 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 ${className}`}
       {...props}
     />
   )

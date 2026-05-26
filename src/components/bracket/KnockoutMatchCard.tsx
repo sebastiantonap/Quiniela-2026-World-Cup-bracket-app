@@ -13,13 +13,7 @@ interface KnockoutMatchCardProps {
   saving?: boolean
 }
 
-export function KnockoutMatchCard({
-  match,
-  prediction,
-  isEditable,
-  onUpdate,
-  saving,
-}: KnockoutMatchCardProps) {
+export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving }: KnockoutMatchCardProps) {
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
   const [localWinner, setLocalWinner] = useState<string | null>(
@@ -52,13 +46,19 @@ export function KnockoutMatchCard({
   }
 
   return (
-    <div className={`rounded-xl border bg-white p-4 shadow-sm ${slotsUnfilled ? 'opacity-60' : ''}`}>
+    <div
+      className={`rounded-xl border border-slate-700 bg-slate-800 p-4 ${
+        slotsUnfilled ? 'opacity-50' : ''
+      }`}
+    >
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-400">Match {match.match_number}</span>
+        <span className="text-xs font-medium text-slate-500">#{match.match_number}</span>
         {hasResult && pts !== null && pts !== undefined && (
-          pts > 0 ? <PointsBadge points={pts} /> : <span className="text-xs text-gray-400">0 pts</span>
+          pts > 0
+            ? <PointsBadge points={pts} />
+            : <span className="text-xs text-slate-500">0 pts</span>
         )}
-        {saving && <span className="text-xs text-gray-400">saving…</span>}
+        {saving && <span className="text-xs text-slate-500">saving…</span>}
       </div>
 
       {/* Home team */}
@@ -70,24 +70,24 @@ export function KnockoutMatchCard({
               name={`winner-${match.id}`}
               checked={localWinner === homeTeam.id}
               onChange={() => handleWinnerChange(homeTeam.id)}
-              className="accent-blue-600"
+              className="accent-amber-500"
               title="Pick as winner"
             />
           )}
-          <span className="truncate text-sm font-medium">
+          <span className="truncate text-sm font-medium text-slate-200">
             {homeFlag} {homeName}
           </span>
         </div>
         {effectiveEditable ? (
           <ScoreInput value={localHome} onChange={handleHomeChange} />
         ) : (
-          <span className="w-12 rounded bg-gray-100 py-1 text-center text-sm font-semibold text-gray-600">
+          <span className="w-12 rounded bg-slate-700 py-1 text-center text-sm font-semibold text-slate-300">
             {prediction?.predicted_home ?? '-'}
           </span>
         )}
       </div>
 
-      <div className="border-t border-gray-100 py-0.5 text-center text-xs text-gray-400">vs</div>
+      <div className="border-t border-slate-700 py-0.5 text-center text-xs text-slate-500">vs</div>
 
       {/* Away team */}
       <div className="flex items-center justify-between gap-2 py-1.5">
@@ -98,31 +98,30 @@ export function KnockoutMatchCard({
               name={`winner-${match.id}`}
               checked={localWinner === awayTeam.id}
               onChange={() => handleWinnerChange(awayTeam.id)}
-              className="accent-blue-600"
+              className="accent-amber-500"
               title="Pick as winner"
             />
           )}
-          <span className="truncate text-sm font-medium">
+          <span className="truncate text-sm font-medium text-slate-200">
             {awayFlag} {awayName}
           </span>
         </div>
         {effectiveEditable ? (
           <ScoreInput value={localAway} onChange={handleAwayChange} />
         ) : (
-          <span className="w-12 rounded bg-gray-100 py-1 text-center text-sm font-semibold text-gray-600">
+          <span className="w-12 rounded bg-slate-700 py-1 text-center text-sm font-semibold text-slate-300">
             {prediction?.predicted_away ?? '-'}
           </span>
         )}
       </div>
 
-      {/* Winner selection hint */}
       {effectiveEditable && (
-        <p className="mt-2 text-center text-xs text-gray-400">
-          Select radio button to pick winner (required for points)
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Select winner (radio) — required for points
         </p>
       )}
       {slotsUnfilled && (
-        <p className="mt-2 text-center text-xs text-gray-400">Teams TBD</p>
+        <p className="mt-2 text-center text-xs text-slate-500">Teams TBD</p>
       )}
     </div>
   )

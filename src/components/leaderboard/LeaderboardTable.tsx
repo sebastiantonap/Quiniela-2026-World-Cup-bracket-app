@@ -7,40 +7,74 @@ function maskEmail(email: string): string {
   return `${local[0]}***@${domain}`
 }
 
+function rankDisplay(rank: number) {
+  if (rank === 1) return { icon: '🥇', classes: 'text-amber-400 font-bold text-base' }
+  if (rank === 2) return { icon: '🥈', classes: 'text-slate-300 font-bold text-base' }
+  if (rank === 3) return { icon: '🥉', classes: 'text-amber-700 font-bold text-base' }
+  return { icon: null, classes: 'text-slate-500 tabular-nums' }
+}
+
 interface LeaderboardTableProps {
   rows: LeaderboardRow[]
   currentPage: number
   totalPages: number
+  currentUserId: string | null
 }
 
-export function LeaderboardTable({ rows, currentPage, totalPages }: LeaderboardTableProps) {
+export function LeaderboardTable({ rows, currentPage, totalPages, currentUserId }: LeaderboardTableProps) {
   return (
     <div>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+      <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <th className="px-4 py-3">Rank</th>
-              <th className="px-4 py-3">Entry</th>
-              <th className="px-4 py-3">User</th>
+            <tr className="border-b border-slate-700 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 w-12">Rank</th>
+              <th className="px-4 py-3">Bracket</th>
+              <th className="px-4 py-3 hidden sm:table-cell">User</th>
+              <th className="px-4 py-3 hidden md:table-cell text-center">Picks</th>
               <th className="px-4 py-3 text-right">Points</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {rows.map((row) => (
-              <tr key={row.entry_id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-semibold text-gray-500">
-                  {row.rank <= 3 ? (
-                    <span>{row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : '🥉'}</span>
-                  ) : (
-                    `#${row.rank}`
-                  )}
-                </td>
-                <td className="px-4 py-3 font-medium text-gray-900">{row.entry_name}</td>
-                <td className="px-4 py-3 text-gray-500">{maskEmail(row.user_email)}</td>
-                <td className="px-4 py-3 text-right font-bold text-blue-600">{row.total_points}</td>
-              </tr>
-            ))}
+          <tbody className="divide-y divide-slate-700/60">
+            {rows.map((row) => {
+              const isMe = currentUserId === row.user_id
+              const { icon, classes } = rankDisplay(row.rank)
+              return (
+                <tr
+                  key={row.entry_id}
+                  className={`transition ${
+                    isMe
+                      ? 'bg-amber-500/10 hover:bg-amber-500/15'
+                      : 'hover:bg-slate-700/40'
+                  }`}
+                >
+                  <td className={`px-4 py-3 ${classes}`}>
+                    {icon ? <span>{icon}</span> : `#${row.rank}`}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`font-medium ${isMe ? 'text-amber-400' : 'text-slate-200'}`}>
+                      {row.entry_name}
+                    </span>
+                    {isMe && (
+                      <span className="ml-2 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
+                        you
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-400 hidden sm:table-cell">
+                    {maskEmail(row.user_email)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-slate-500 hidden md:table-cell">
+                    {row.predictions_count}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={`font-bold tabular-nums ${isMe ? 'text-amber-400' : 'text-slate-100'}`}>
+                      {row.total_points}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -51,18 +85,18 @@ export function LeaderboardTable({ rows, currentPage, totalPages }: LeaderboardT
           {currentPage > 1 && (
             <Link
               href={`/leaderboard?page=${currentPage - 1}`}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-700"
             >
               ← Previous
             </Link>
           )}
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-slate-500">
             Page {currentPage} of {totalPages}
           </span>
           {currentPage < totalPages && (
             <Link
               href={`/leaderboard?page=${currentPage + 1}`}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-700"
             >
               Next →
             </Link>
