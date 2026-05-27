@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSessionEmail } from '@/lib/session'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/auth/isAdmin'
 import { Nav } from '@/components/Nav'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import type { MatchWithTeams, Round } from '@/types/app'
@@ -8,7 +9,7 @@ import type { MatchWithTeams, Round } from '@/types/app'
 export default async function AdminPage() {
   const email = await getSessionEmail()
 
-  if (!email || email !== process.env.ADMIN_EMAIL) {
+  if (!isAdmin(email)) {
     redirect('/dashboard')
   }
 

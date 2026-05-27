@@ -1,15 +1,13 @@
 'use server'
 
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSessionEmail } from '@/lib/session'
+import { isAdmin } from '@/lib/auth/isAdmin'
 import { recalculateRound } from '@/lib/scoring/recalculate'
 import { revalidatePath } from 'next/cache'
 
 async function assertAdmin() {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    throw new Error('Unauthorized')
-  }
+  const email = await getSessionEmail()
+  if (!isAdmin(email)) throw new Error('Unauthorized')
 }
 
 export async function triggerRecalculation(roundId: string): Promise<{ error?: string }> {

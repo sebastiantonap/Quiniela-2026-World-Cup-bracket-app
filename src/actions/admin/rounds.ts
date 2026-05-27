@@ -1,16 +1,14 @@
 'use server'
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSessionEmail } from '@/lib/session'
+import { isAdmin } from '@/lib/auth/isAdmin'
 import { revalidatePath } from 'next/cache'
 import type { RoundStatus } from '@/types/app'
 
 async function assertAdmin() {
-  const supabase = await getSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    throw new Error('Unauthorized')
-  }
+  const email = await getSessionEmail()
+  if (!isAdmin(email)) throw new Error('Unauthorized')
 }
 
 export async function setRoundStatus(
