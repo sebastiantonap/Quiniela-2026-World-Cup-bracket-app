@@ -59,8 +59,8 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
               onClick={() => setSelectedRound(roundName)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 selectedRound === roundName
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-amber-500 text-slate-900'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {ROUND_LABELS[roundName]}
@@ -73,16 +73,16 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
         {roundMatches.map((match) => (
           <div
             key={match.id}
-            className="flex flex-wrap items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100"
+            className="flex flex-wrap items-center gap-4 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3"
           >
-            <span className="text-xs text-gray-400">M{match.match_number}</span>
-            <div className="flex-1 min-w-0 text-xs text-gray-500">
+            <span className="text-xs text-slate-500">M{match.match_number}</span>
+            <div className="flex-1 min-w-0 text-xs text-slate-400">
               <div>{match.placeholder_home}</div>
               <div>{match.placeholder_away}</div>
             </div>
 
             {match.home_team && match.away_team ? (
-              <span className="text-sm font-medium text-green-700">
+              <span className="text-sm font-medium text-green-400">
                 {match.home_team.name} vs {match.away_team.name} ✓
               </span>
             ) : (
@@ -90,18 +90,18 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                 <select
                   value={getSlot(match.id, 'home')}
                   onChange={(e) => setSlot(match.id, 'home', e.target.value)}
-                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
                 >
                   <option value="">Home team…</option>
                   {teams.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
-                <span className="text-gray-400">vs</span>
+                <span className="text-slate-500">vs</span>
                 <select
                   value={getSlot(match.id, 'away')}
                   onChange={(e) => setSlot(match.id, 'away', e.target.value)}
-                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
                 >
                   <option value="">Away team…</option>
                   {teams.map((t) => (
@@ -115,7 +115,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
             )}
 
             {feedback[match.id] && (
-              <span className={`text-xs ${feedback[match.id] === 'Assigned!' ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`text-xs ${feedback[match.id] === 'Assigned!' ? 'text-green-400' : 'text-red-400'}`}>
                 {feedback[match.id]}
               </span>
             )}

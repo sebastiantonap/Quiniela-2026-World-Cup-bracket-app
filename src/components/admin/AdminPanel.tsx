@@ -27,15 +27,15 @@ export function AdminPanel({ rounds, matches, teams }: AdminPanelProps) {
 
   return (
     <div>
-      <div className="mb-6 flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <div className="mb-6 flex gap-1 rounded-xl bg-slate-800 p-1 w-fit border border-slate-700">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === tab.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-slate-700 text-slate-100 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             {tab.label}

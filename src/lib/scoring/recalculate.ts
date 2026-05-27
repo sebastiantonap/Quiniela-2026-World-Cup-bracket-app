@@ -22,15 +22,18 @@ function scoreQualification(
   if (predicted1st) {
     if (predicted1st === actual1st) pts += 4
     else if (qualifyingIds.includes(predicted1st)) pts += 1
+    else if (predicted1st === actual3rd) pts += 1
   }
 
   if (predicted2nd) {
     if (predicted2nd === actual2nd) pts += 3
     else if (qualifyingIds.includes(predicted2nd)) pts += 1
+    else if (predicted2nd === actual3rd) pts += 1
   }
 
   if (predicted3rd && actual3rd) {
     if (predicted3rd === actual3rd) pts += 2
+    else if (qualifyingIds.includes(predicted3rd)) pts += 1
   }
 
   return pts

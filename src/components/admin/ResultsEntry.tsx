@@ -73,8 +73,8 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
               onClick={() => setSelectedRound(roundName)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 selectedRound === roundName
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-amber-500 text-slate-900'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               {ROUND_LABELS[roundName]}
@@ -93,17 +93,19 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
           return (
             <div
               key={match.id}
-              className={`flex flex-wrap items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ${
-                match.result_confirmed ? 'ring-green-200 bg-green-50' : 'ring-gray-100'
+              className={`flex flex-wrap items-center gap-4 rounded-xl px-4 py-3 border ${
+                match.result_confirmed
+                  ? 'border-green-700/50 bg-green-900/20'
+                  : 'border-slate-700 bg-slate-800'
               }`}
             >
-              <span className="w-6 text-xs text-gray-400">{match.match_number}</span>
-              <span className="flex-1 min-w-0 text-sm font-medium truncate">
+              <span className="w-6 text-xs text-slate-500">{match.match_number}</span>
+              <span className="flex-1 min-w-0 text-sm font-medium text-slate-200 truncate">
                 {homeFlag} {homeName} vs {awayFlag} {awayName}
               </span>
 
               {match.result_confirmed && (
-                <span className="text-sm font-bold text-green-700">
+                <span className="text-sm font-bold text-green-400">
                   {match.home_score}–{match.away_score}
                 </span>
               )}
@@ -116,9 +118,9 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                   placeholder={match.home_score?.toString() ?? 'H'}
                   value={getScore(match.id, 'home')}
                   onChange={(e) => setScore(match.id, 'home', e.target.value)}
-                  className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                  className="w-14 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-center text-sm text-slate-200 placeholder:text-slate-500"
                 />
-                <span className="text-gray-400">-</span>
+                <span className="text-slate-500">-</span>
                 <input
                   type="number"
                   min={0}
@@ -126,14 +128,14 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                   placeholder={match.away_score?.toString() ?? 'A'}
                   value={getScore(match.id, 'away')}
                   onChange={(e) => setScore(match.id, 'away', e.target.value)}
-                  className="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                  className="w-14 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-center text-sm text-slate-200 placeholder:text-slate-500"
                 />
 
                 {isKnockout && (
                   <select
                     value={getScore(match.id, 'winner')}
                     onChange={(e) => setScore(match.id, 'winner', e.target.value)}
-                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                    className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
                   >
                     <option value="">Winner…</option>
                     {match.home_team && (
@@ -151,7 +153,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
               </div>
 
               {feedback[match.id] && (
-                <span className={`text-xs ${feedback[match.id] === 'Saved!' ? 'text-green-600' : 'text-red-500'}`}>
+                <span className={`text-xs ${feedback[match.id] === 'Saved!' ? 'text-green-400' : 'text-red-400'}`}>
                   {feedback[match.id]}
                 </span>
               )}

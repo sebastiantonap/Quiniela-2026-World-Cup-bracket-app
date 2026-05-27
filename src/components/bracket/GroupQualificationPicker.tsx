@@ -9,6 +9,7 @@ interface Props {
   isEditable: boolean
   onUpdate: (groupId: string, updates: Partial<QualPick>) => void
   saving?: boolean
+  ambiguousTeams?: [Team, Team] | null
 }
 
 const POSITIONS = [
@@ -17,9 +18,9 @@ const POSITIONS = [
   { label: '3rd', key: 'predicted3rd' as const, pts: '2 pts' },
 ]
 
-export function GroupQualificationPicker({ groupId, teams, pick, isEditable, onUpdate, saving }: Props) {
+export function GroupQualificationPicker({ groupId, teams, pick, isEditable, onUpdate, saving, ambiguousTeams }: Props) {
   const selectedIds = new Set([pick?.predicted1st, pick?.predicted2nd, pick?.predicted3rd].filter(Boolean) as string[])
-
+  const ambigIds = new Set(ambiguousTeams?.map((t) => t.id) ?? [])
   const hasPoints = pick?.pointsAwarded !== null && pick?.pointsAwarded !== undefined
 
   return (
@@ -41,6 +42,14 @@ export function GroupQualificationPicker({ groupId, teams, pick, isEditable, onU
       <div className="space-y-1.5">
         {POSITIONS.map(({ label, key, pts }) => {
           const currentVal = pick?.[key] ?? null
+          const is3rd = key === 'predicted3rd'
+          const needsManualPick = is3rd && isEditable && ambiguousTeams != null
+
+          // When ambiguous, only show the two tied teams in the 3rd dropdown
+          const dropdownTeams = needsManualPick
+            ? teams.filter((t) => ambigIds.has(t.id))
+            : teams
+
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="w-7 flex-shrink-0 text-xs font-bold text-amber-400">{label}</span>
@@ -48,10 +57,16 @@ export function GroupQualificationPicker({ groupId, teams, pick, isEditable, onU
                 <select
                   value={currentVal ?? ''}
                   onChange={(e) => onUpdate(groupId, { [key]: e.target.value || null })}
-                  className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                  className={`flex-1 rounded border px-2 py-1 text-xs text-slate-100 outline-none focus:ring-1 ${
+                    needsManualPick
+                      ? 'border-amber-500/60 bg-amber-900/20 focus:border-amber-500 focus:ring-amber-500/30'
+                      : 'border-slate-600 bg-slate-700 focus:border-amber-500 focus:ring-amber-500/30'
+                  }`}
                 >
-                  <option value="">— pick a team —</option>
-                  {teams.map((t) => {
+                  <option value="">
+                    {needsManualPick ? '— pick one of the tied teams —' : '— pick a team —'}
+                  </option>
+                  {dropdownTeams.map((t) => {
                     const takenByOther = selectedIds.has(t.id) && t.id !== currentVal
                     return (
                       <option key={t.id} value={t.id} disabled={takenByOther}>

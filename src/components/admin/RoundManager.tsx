@@ -51,22 +51,22 @@ export function RoundManager({ rounds }: RoundManagerProps) {
   }
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 overflow-hidden">
+    <div className="rounded-2xl bg-slate-800 border border-slate-700 overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <tr className="border-b border-slate-700 bg-slate-700/50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
             <th className="px-6 py-3">Round</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3">Actions</th>
             <th className="px-6 py-3">Feedback</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-slate-700/60">
           {rounds.map((round) => {
             const nextStatus = NEXT_STATUS[round.status]
             return (
               <tr key={round.id}>
-                <td className="px-6 py-4 font-medium">{ROUND_LABELS[round.name]}</td>
+                <td className="px-6 py-4 font-medium text-slate-200">{ROUND_LABELS[round.name]}</td>
                 <td className="px-6 py-4">
                   <RoundStatusBadge status={round.status} />
                 </td>
@@ -95,7 +95,7 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-xs text-gray-500">
+                <td className="px-6 py-4 text-xs text-slate-400">
                   {feedback[round.id] && <span>{feedback[round.id]}</span>}
                   {feedback[`recalc-${round.id}`] && (
                     <span>{feedback[`recalc-${round.id}`]}</span>
