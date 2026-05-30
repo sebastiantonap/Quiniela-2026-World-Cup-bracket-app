@@ -110,7 +110,7 @@ export function ThirdPlaceSelector({
 
   const predictedCount = thirdPlaceTeams.length
   const selectedCount = selectedIds.size
-  const canConfirm = isEditable && selectedCount > 0 && selectedCount <= 8 && !isPending
+  const canConfirm = isEditable && selectedCount === 8 && !isPending
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 pt-10">
@@ -230,6 +230,9 @@ export function ThirdPlaceSelector({
         <div className="flex items-center justify-between border-t border-slate-700 px-5 py-3 gap-3">
           <span className="text-xs text-slate-500">
             {selectedCount}/8 selected
+            {selectedCount !== 8 && isEditable && (
+              <span className="ml-1 text-amber-400">— select exactly 8 to confirm</span>
+            )}
           </span>
           <div className="flex items-center gap-3">
             {saveError && <span className="text-xs text-red-400">{saveError}</span>}

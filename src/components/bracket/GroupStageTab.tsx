@@ -74,8 +74,33 @@ export function GroupStageTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups, groupStageMatches, predictions])
 
+  const confirmedCount = initialThirdPlaceSelections.length
+
   return (
     <div className="space-y-4">
+      {/* Best 8 Third-Place trigger — shown at the top so it's immediately visible */}
+      {predictedThirdCount > 0 && (
+        <button
+          onClick={() => setShowThirdPlaceModal(true)}
+          className="w-full flex items-center justify-between rounded-xl border border-amber-700/50 bg-amber-900/20 px-5 py-3 text-sm font-medium text-amber-300 transition hover:bg-amber-900/30"
+        >
+          <div className="flex items-center gap-2">
+            <span>Best 8 Third-Place Teams</span>
+            {hasBoundaryTie && (
+              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                tie — resolve manually
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            <span className={confirmedCount === 8 ? 'text-green-400 font-semibold' : 'text-slate-400'}>
+              {confirmedCount === 8 ? '✓ 8/8 confirmed' : `${confirmedCount}/8 confirmed`}
+            </span>
+            <span className="text-slate-500">→</span>
+          </div>
+        </button>
+      )}
+
       {unresolvedCount > 0 && isEditable && (
         <div className="rounded-xl border border-amber-700/40 bg-amber-900/20 px-4 py-3 text-sm text-amber-300">
           <span className="font-semibold">{unresolvedCount} group{unresolvedCount !== 1 ? 's' : ''}</span>
@@ -108,25 +133,6 @@ export function GroupStageTab({
           )
         })}
       </div>
-
-      {/* Best 8 Third-Place trigger */}
-      {predictedThirdCount > 0 && (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={() => setShowThirdPlaceModal(true)}
-            className="flex items-center gap-2 rounded-xl border border-amber-700/50 bg-amber-900/20 px-5 py-3 text-sm font-medium text-amber-300 transition hover:bg-amber-900/30"
-          >
-            <span>Best 8 Third-Place Teams</span>
-            <span className="text-xs text-slate-400">({predictedThirdCount}/12 predicted)</span>
-            {hasBoundaryTie && (
-              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
-                tie
-              </span>
-            )}
-            <span className="text-slate-500">→</span>
-          </button>
-        </div>
-      )}
 
       {showThirdPlaceModal && (
         <ThirdPlaceSelector
