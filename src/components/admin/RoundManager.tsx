@@ -84,40 +84,46 @@ export function RoundManager({ rounds }: RoundManagerProps) {
             <th className="px-6 py-3">Round</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3">Actions</th>
-            <th className="px-6 py-3">Feedback</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700/60">
           {rounds.map((round) => {
-            const nextStatus = NEXT_STATUS[round.status]
+            const isOpen = round.status === 'accepting_predictions'
+            const fb = feedback[round.id] ?? feedback[`recalc-${round.id}`]
             return (
-              <tr key={round.id}>
-                <td className="px-6 py-4 font-medium text-slate-200">{ROUND_LABELS[round.name]}</td>
+              <tr
+                key={round.id}
+                className={isOpen ? 'bg-green-900/10 border-l-2 border-l-green-500' : ''}
+              >
+                <td className="px-6 py-4 font-medium text-slate-200">
+                  {ROUND_LABELS[round.name]}
+                  {isOpen && (
+                    <span className="ml-2 text-xs font-normal text-green-400">● active</span>
+                  )}
+                </td>
                 <td className="px-6 py-4">
                   <RoundStatusBadge status={round.status} />
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    {nextStatus && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        loading={loading[round.id]}
-                        onClick={() => handleTransition(round)}
-                      >
-                        → {nextStatus.replace(/_/g, ' ')}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Primary forward action */}
+                    {round.status === 'pending' && (
+                      <Button size="sm" variant="primary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
+                        🔓 Open
                       </Button>
                     )}
-                    {PREV_STATUS[round.status] && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        loading={loading[`revert-${round.id}`]}
-                        onClick={() => handleRevert(round)}
-                      >
-                        ← revert
+                    {round.status === 'accepting_predictions' && (
+                      <Button size="sm" variant="secondary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
+                        🔒 Lock
                       </Button>
                     )}
+                    {round.status === 'locked' && (
+                      <Button size="sm" variant="secondary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
+                        ✓ Complete
+                      </Button>
+                    )}
+
+                    {/* Recalculate — available once results can be entered */}
                     {(round.status === 'locked' || round.status === 'completed') && (
                       <Button
                         size="sm"
@@ -126,15 +132,25 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                         onClick={() => handleRecalculate(round)}
                         disabled={round.calculating}
                       >
-                        {round.calculating ? 'Calculating…' : 'Recalculate'}
+                        {round.calculating ? 'Calculating…' : '⟳ Recalculate'}
+                      </Button>
+                    )}
+
+                    {/* Revert — always secondary, shown only where applicable */}
+                    {PREV_STATUS[round.status] && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={loading[`revert-${round.id}`]}
+                        onClick={() => handleRevert(round)}
+                        className="text-slate-500 hover:text-slate-300"
+                      >
+                        ↩
                       </Button>
                     )}
                   </div>
-                </td>
-                <td className="px-6 py-4 text-xs text-slate-400">
-                  {feedback[round.id] && <span>{feedback[round.id]}</span>}
-                  {feedback[`recalc-${round.id}`] && (
-                    <span>{feedback[`recalc-${round.id}`]}</span>
+                  {fb && (
+                    <p className="mt-1.5 text-xs text-slate-400">{fb}</p>
                   )}
                 </td>
               </tr>
