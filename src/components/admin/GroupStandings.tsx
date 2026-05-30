@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { computeGroupStandings } from '@/lib/standings/groupStandings'
+import { computeGroupStandings, isStandingsTie } from '@/lib/standings/groupStandings'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
 import { confirmThirdPlaceQualifiers } from '@/actions/admin/confirmThirdPlaceQualifiers'
 import type { MatchWithTeams, Team, TeamStanding } from '@/types/app'
@@ -13,13 +13,7 @@ interface GroupStandingsProps {
 
 type ThirdPlaceEntry = TeamStanding & { group: string }
 
-function isTied(a: TeamStanding, b: TeamStanding) {
-  return (
-    a.points === b.points &&
-    a.goal_difference === b.goal_difference &&
-    a.goals_for === b.goals_for
-  )
-}
+const isTied = isStandingsTie
 
 export function GroupStandings({ matches, teams }: GroupStandingsProps) {
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')

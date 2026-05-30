@@ -1,5 +1,18 @@
 import type { Team, MatchWithTeams, TeamStanding } from '@/types/app'
 
+/**
+ * Two standings rows are "fully tied" when points, goal difference, and goals-for are
+ * all equal — i.e. the deterministic sort can't separate them and a human (head-to-head,
+ * drawing of lots, etc.) must decide the order.
+ */
+export function isStandingsTie(a: TeamStanding, b: TeamStanding): boolean {
+  return (
+    a.points === b.points &&
+    a.goal_difference === b.goal_difference &&
+    a.goals_for === b.goals_for
+  )
+}
+
 export function computeGroupStandings(
   teams: Team[],
   matches: MatchWithTeams[]

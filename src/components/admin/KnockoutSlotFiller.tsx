@@ -1,11 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { assignKnockoutTeams } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
-import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
-import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
+import { computeGroupStandings } from '@/lib/standings/groupStandings'
+import {
+  parseSlotPlaceholder,
+  resolveKnockoutSlot,
+  type ResolvedSlot,
+  type SlotContext,
+} from '@/lib/standings/knockoutSlots'
+import { ROUND_LABELS, GROUP_LETTERS } from '@/lib/constants/rounds'
+import type { MatchWithTeams, Round, RoundName, Team, TeamStanding } from '@/types/app'
 
 interface KnockoutSlotFillerProps {
   rounds: Round[]
@@ -18,32 +25,104 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
 
   const [selectedRound, setSelectedRound] = useState<RoundName>('round_of_32')
-  const [slots, setSlots] = useState<Record<string, { home: string; away: string }>>({})
+  const [slots, setSlots] = useState<Record<string, { home?: string; away?: string }>>({})
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
+  const [bulkLoading, setBulkLoading] = useState(false)
   const router = useRouter()
 
-  const roundMatches = matches.filter((m) => m.round?.name === selectedRound)
+  const teamById = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams])
+
+  // ---- Context for resolving slot presets, built from existing props (no fetch) ----
+  const ctx: SlotContext = useMemo(() => {
+    const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
+
+    const groupStandings: Record<string, TeamStanding[]> = {}
+    const thirds: (TeamStanding & { group: string })[] = []
+    for (const letter of GROUP_LETTERS) {
+      const groupTeams = teams.filter(
+        (t) =>
+          t.group_id &&
+          groupStageMatches.some(
+            (m) => m.group?.name === letter && (m.home_team_id === t.id || m.away_team_id === t.id)
+          )
+      )
+      if (groupTeams.length === 0) continue
+      const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
+      const standings = computeGroupStandings(groupTeams, groupMatches)
+      groupStandings[letter] = standings
+      if (standings[2]) thirds.push({ ...standings[2], group: letter })
+    }
+
+    // Confirmed best thirds, ranked by Pts → GD → GF → name (same comparator as group sort).
+    const bestThirds = thirds
+      .filter((s) => s.team.best_third_qualified)
+      .sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points
+        if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference
+        if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for
+        return a.team.name.localeCompare(b.team.name)
+      })
+
+    const matchByNumber = new Map(matches.map((m) => [m.match_number, m]))
+    const byNumber = (a: MatchWithTeams, b: MatchWithTeams) => a.match_number - b.match_number
+    const qfMatches = matches.filter((m) => m.round?.name === 'quarterfinals').sort(byNumber)
+    const sfMatches = matches.filter((m) => m.round?.name === 'semifinals').sort(byNumber)
+
+    return { groupStandings, bestThirds, matchByNumber, qfMatches, sfMatches }
+  }, [matches, teams])
+
+  const roundMatches = useMemo(
+    () => matches.filter((m) => m.round?.name === selectedRound).sort((a, b) => a.match_number - b.match_number),
+    [matches, selectedRound]
+  )
+
+  // Resolved preset/candidates per unfilled match in the selected round.
+  const resolved = useMemo(() => {
+    const out: Record<string, { home: ResolvedSlot; away: ResolvedSlot }> = {}
+    for (const m of roundMatches) {
+      out[m.id] = {
+        home: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_home), ctx),
+        away: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_away), ctx),
+      }
+    }
+    return out
+  }, [roundMatches, ctx])
 
   function getSlot(matchId: string, side: 'home' | 'away') {
-    return slots[matchId]?.[side] ?? ''
+    return slots[matchId]?.[side] ?? resolved[matchId]?.[side].presetTeamId ?? ''
   }
 
   function setSlot(matchId: string, side: 'home' | 'away', value: string) {
-    setSlots((prev) => ({
-      ...prev,
-      [matchId]: { home: prev[matchId]?.home ?? '', away: prev[matchId]?.away ?? '', [side]: value },
-    }))
+    setSlots((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: value } }))
+  }
+
+  async function assignOne(match: MatchWithTeams) {
+    const homeId = getSlot(match.id, 'home') || null
+    const awayId = getSlot(match.id, 'away') || null
+    const result = await assignKnockoutTeams(match.id, homeId, awayId)
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Assigned!' }))
+    return !result.error
   }
 
   async function handleAssign(match: MatchWithTeams) {
-    const homeId = slots[match.id]?.home || null
-    const awayId = slots[match.id]?.away || null
-
     setLoading((prev) => ({ ...prev, [match.id]: true }))
-    const result = await assignKnockoutTeams(match.id, homeId, awayId)
-    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Assigned!' }))
+    await assignOne(match)
     setLoading((prev) => ({ ...prev, [match.id]: false }))
+    router.refresh()
+  }
+
+  // Matches whose both sides are ready and not flagged as ties — safe to auto-assign in bulk.
+  const autoAssignable = roundMatches.filter((m) => {
+    if (m.home_team && m.away_team) return false
+    const r = resolved[m.id]
+    return r && r.home.ready && r.away.ready && !r.home.isTie && !r.away.isTie
+  })
+
+  async function handleAssignAll() {
+    setBulkLoading(true)
+    for (const m of autoAssignable) await assignOne(m)
+    setBulkLoading(false)
     router.refresh()
   }
 
@@ -69,59 +148,122 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
         })}
       </div>
 
+      {autoAssignable.length > 0 && (
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-800/60 border border-slate-700 px-4 py-2">
+          <span className="text-xs text-slate-400">
+            {autoAssignable.length} match{autoAssignable.length !== 1 ? 'es' : ''} can be filled from presets
+            {' '}(tie / undecided slots are skipped).
+          </span>
+          <Button size="sm" loading={bulkLoading} onClick={handleAssignAll}>
+            Assign all presets
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-3">
-        {roundMatches.map((match) => (
-          <div
-            key={match.id}
-            className="flex flex-wrap items-center gap-4 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3"
-          >
-            <span className="text-xs text-slate-500">M{match.match_number}</span>
-            <div className="flex-1 min-w-0 text-xs text-slate-400">
-              <div>{match.placeholder_home}</div>
-              <div>{match.placeholder_away}</div>
-            </div>
+        {roundMatches.map((match) => {
+          const r = resolved[match.id]
+          const filled = match.home_team && match.away_team
+          const notReady = !filled && r && (!r.home.ready || !r.away.ready)
+          const tie = !filled && r && (r.home.isTie || r.away.isTie)
 
-            {match.home_team && match.away_team ? (
-              <span className="text-sm font-medium text-green-400">
-                {match.home_team.name} vs {match.away_team.name} ✓
-              </span>
-            ) : (
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={getSlot(match.id, 'home')}
-                  onChange={(e) => setSlot(match.id, 'home', e.target.value)}
-                  className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
-                >
-                  <option value="">Home team…</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <span className="text-slate-500">vs</span>
-                <select
-                  value={getSlot(match.id, 'away')}
-                  onChange={(e) => setSlot(match.id, 'away', e.target.value)}
-                  className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
-                >
-                  <option value="">Away team…</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <Button size="sm" loading={loading[match.id]} onClick={() => handleAssign(match)}>
-                  Assign
-                </Button>
+          return (
+            <div
+              key={match.id}
+              className={`flex flex-wrap items-center gap-4 rounded-xl bg-slate-800 border px-4 py-3 ${
+                tie ? 'border-amber-700/60' : 'border-slate-700'
+              }`}
+            >
+              <span className="text-xs text-slate-500">M{match.match_number}</span>
+              <div className="flex-1 min-w-0 text-xs text-slate-400">
+                <div>{match.placeholder_home}</div>
+                <div>{match.placeholder_away}</div>
               </div>
-            )}
 
-            {feedback[match.id] && (
-              <span className={`text-xs ${feedback[match.id] === 'Assigned!' ? 'text-green-400' : 'text-red-400'}`}>
-                {feedback[match.id]}
-              </span>
-            )}
-          </div>
-        ))}
+              {filled ? (
+                <span className="text-sm font-medium text-green-400">
+                  {match.home_team!.name} vs {match.away_team!.name} ✓
+                </span>
+              ) : (
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <SlotSelect
+                      value={getSlot(match.id, 'home')}
+                      candidates={r?.home.candidateTeamIds ?? []}
+                      teamById={teamById}
+                      placeholder="Home team…"
+                      onChange={(v) => setSlot(match.id, 'home', v)}
+                    />
+                    <span className="text-slate-500">vs</span>
+                    <SlotSelect
+                      value={getSlot(match.id, 'away')}
+                      candidates={r?.away.candidateTeamIds ?? []}
+                      teamById={teamById}
+                      placeholder="Away team…"
+                      onChange={(v) => setSlot(match.id, 'away', v)}
+                    />
+                    <Button
+                      size="sm"
+                      loading={loading[match.id]}
+                      disabled={notReady || !getSlot(match.id, 'home') || !getSlot(match.id, 'away')}
+                      onClick={() => handleAssign(match)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                  {tie && (
+                    <span className="text-[11px] text-amber-400">⚠ Tie — verify the correct finisher</span>
+                  )}
+                  {notReady && (
+                    <span className="text-[11px] text-slate-500">
+                      {r?.home.note || r?.away.note || 'Previous round not decided'}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {feedback[match.id] && (
+                <span className={`text-xs ${feedback[match.id] === 'Assigned!' ? 'text-green-400' : 'text-red-400'}`}>
+                  {feedback[match.id]}
+                </span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
+  )
+}
+
+function SlotSelect({
+  value,
+  candidates,
+  teamById,
+  placeholder,
+  onChange,
+}: {
+  value: string
+  candidates: string[]
+  teamById: Map<string, Team>
+  placeholder: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
+    >
+      <option value="">{placeholder}</option>
+      {candidates.map((id) => {
+        const t = teamById.get(id)
+        if (!t) return null
+        return (
+          <option key={id} value={id}>
+            {t.flag_emoji} {t.name}
+          </option>
+        )
+      })}
+    </select>
   )
 }
