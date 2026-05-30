@@ -2,6 +2,8 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { calculatePoints } from './engine'
+import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND } from './knockoutEligibility'
+import { ROUND_POINTS } from '@/lib/constants/rounds'
 import { computeGroupStandings } from '@/lib/standings/groupStandings'
 import type { RoundName, Team, MatchWithTeams } from '@/types/app'
 
@@ -71,7 +73,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // ---------- Match predictions ----------
     const { data: matches } = await supabase
       .from('matches')
-      .select('id, home_score, away_score, winner_team_id')
+      .select('id, home_team_id, away_team_id, home_score, away_score, winner_team_id')
       .eq('round_id', roundId)
       .eq('result_confirmed', true)
 
@@ -94,39 +96,70 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // Derive affected entry IDs up-front so the eligibility query can use them
     const affectedEntryIds = Array.from(new Set(predictions.map((p) => p.entry_id)))
 
-    // ---------- Build eligibility map for knockout rounds ----------
-    // For knockout rounds, a prediction for a team scores 0 if the entry
-    // didn't predict that team to qualify from their group stage.
-    // Eligible teams = predicted 1st/2nd across all groups + best-8 third selections.
-    // Entries with no group_qualifications rows are excluded from gating.
+    // ---------- Build per-entry eligibility map for knockout rounds ----------
+    // A team is "yours" for a knockout matchup if you correctly had it advancing into
+    // this round. The source depends on the round:
+    //   round_of_32 → teams you predicted 1st/2nd from groups + your best-8 third picks
+    //   deeper      → teams you picked to WIN their match in the previous round
+    // Entries with no eligibility data at all are excluded from gating (full scoring),
+    // matching the prior behavior so entries that never made picks aren't nuked.
     const eligibilityMap = new Map<string, Set<string>>() // entry_id → Set<team_id>
-    if (round.name !== 'group_stage') {
+    const addEligible = (entryId: string, teamId: string | null) => {
+      if (!teamId) return
+      if (!eligibilityMap.has(entryId)) eligibilityMap.set(entryId, new Set())
+      eligibilityMap.get(entryId)!.add(teamId)
+    }
+
+    if (round.name === 'round_of_32') {
       const { data: allQualRows } = await supabase
         .from('group_qualifications')
         .select('entry_id, predicted_1st_team_id, predicted_2nd_team_id')
         .in('entry_id', affectedEntryIds)
-
       for (const row of allQualRows ?? []) {
-        if (!eligibilityMap.has(row.entry_id)) {
-          eligibilityMap.set(row.entry_id, new Set())
-        }
-        const set = eligibilityMap.get(row.entry_id)!
-        if (row.predicted_1st_team_id) set.add(row.predicted_1st_team_id)
-        if (row.predicted_2nd_team_id) set.add(row.predicted_2nd_team_id)
+        addEligible(row.entry_id, row.predicted_1st_team_id)
+        addEligible(row.entry_id, row.predicted_2nd_team_id)
       }
 
       const { data: allThirdRows } = await supabase
         .from('entry_best_third_selections')
         .select('entry_id, team_id')
         .in('entry_id', affectedEntryIds)
-
       for (const row of allThirdRows ?? []) {
-        if (!eligibilityMap.has(row.entry_id)) {
-          eligibilityMap.set(row.entry_id, new Set())
+        addEligible(row.entry_id, row.team_id)
+      }
+    } else if (round.name !== 'group_stage') {
+      // Eligibility = teams the entry picked to win in the previous round.
+      const prevRoundName = PREV_ELIGIBILITY_ROUND[round.name as RoundName]
+      if (prevRoundName) {
+        const { data: prevRound } = await supabase
+          .from('rounds')
+          .select('id')
+          .eq('name', prevRoundName)
+          .single()
+
+        if (prevRound) {
+          const { data: prevMatches } = await supabase
+            .from('matches')
+            .select('id')
+            .eq('round_id', prevRound.id)
+          const prevMatchIds = (prevMatches ?? []).map((m) => m.id)
+
+          if (prevMatchIds.length > 0) {
+            const { data: prevPreds } = await supabase
+              .from('predictions')
+              .select('entry_id, predicted_winner_team_id')
+              .in('match_id', prevMatchIds)
+              .in('entry_id', affectedEntryIds)
+            for (const p of prevPreds ?? []) {
+              addEligible(p.entry_id, p.predicted_winner_team_id)
+            }
+          }
         }
-        eligibilityMap.get(row.entry_id)!.add(row.team_id)
       }
     }
+
+    const isKnockout = round.name !== 'group_stage'
+    const winnerPoints = isKnockout ? ROUND_POINTS[round.name as RoundName].winner : 0
 
     const updatedPredictions = predictions.map((pred) => {
       const match = matchMap.get(pred.match_id)!
@@ -144,17 +177,28 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         round.name as RoundName
       )
 
-      // Gate: if the entry has qualification picks and the predicted winner
-      // wasn't in them, zero out this prediction.
+      // Knockout eligibility gating: classify the matchup by how many of its two
+      // actual teams the entry owns, then score accordingly.
       let qualification_gated = false
-      if (
-        round.name !== 'group_stage' &&
-        pred.predicted_winner_team_id &&
-        eligibilityMap.has(pred.entry_id) &&
-        !eligibilityMap.get(pred.entry_id)!.has(pred.predicted_winner_team_id)
-      ) {
-        points = 0
-        qualification_gated = true
+      if (isKnockout && eligibilityMap.has(pred.entry_id)) {
+        const eligibleSet = eligibilityMap.get(pred.entry_id)!
+        const { status, forcedWinnerTeamId } = classifyKnockoutMatch(
+          match.home_team_id,
+          match.away_team_id,
+          (teamId) => eligibleSet.has(teamId)
+        )
+
+        if (status === 'void') {
+          // Neither team was yours — no points possible.
+          points = 0
+          qualification_gated = true
+        } else if (status === 'partial') {
+          // Forced to have your one eligible team win: advance points only (no bonus),
+          // and only if that team actually won. Your own pick/scoreline are ignored.
+          points = match.winner_team_id === forcedWinnerTeamId ? winnerPoints : 0
+          qualification_gated = true
+        }
+        // status === 'full' → keep normal calculatePoints result.
       }
 
       return { id: pred.id, entry_id: pred.entry_id, points_awarded: points, qualification_gated }

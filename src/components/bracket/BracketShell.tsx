@@ -7,6 +7,7 @@ import { RoundStatusBadge } from '@/components/ui/Badge'
 import { usePredictions } from '@/hooks/usePredictions'
 import { useQualifications } from '@/hooks/useQualifications'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
+import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND, type KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { MatchWithTeams, Prediction, Round, RoundName, Team, Group, QualState } from '@/types/app'
 
@@ -72,6 +73,32 @@ export function BracketShell({
   const activeRoundData = roundMap[activeRound]
   const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
   const activeMatches = matchesByRound[activeRound] ?? []
+
+  // Per-match knockout eligibility for the active round. A team is "yours" if you correctly
+  // had it advancing into this round: group picks feed Round of 32, then each round keys off
+  // who you picked to win in the previous round. Mirrors the scoring engine.
+  const knockoutEligibility = useMemo(() => {
+    const result: Record<string, KnockoutEligibility> = {}
+    if (activeRound === 'group_stage') return result
+
+    let isEligible: (teamId: string) => boolean
+    if (activeRound === 'round_of_32') {
+      isEligible = (teamId) => eligibilitySet.has(teamId)
+    } else {
+      const prevRound = PREV_ELIGIBILITY_ROUND[activeRound]
+      const prevWinners = new Set<string>()
+      for (const m of (prevRound && matchesByRound[prevRound]) ?? []) {
+        const w = predictions[m.id]?.predicted_winner_team_id
+        if (w) prevWinners.add(w)
+      }
+      isEligible = (teamId) => prevWinners.has(teamId)
+    }
+
+    for (const m of activeMatches) {
+      result[m.id] = classifyKnockoutMatch(m.home_team_id, m.away_team_id, isEligible)
+    }
+    return result
+  }, [activeRound, activeMatches, matchesByRound, predictions, eligibilitySet])
 
   function handleGroupUpdate(matchId: string, home: number | null, away: number | null) {
     updatePrediction(matchId, { predictedHome: home, predictedAway: away, predictedWinnerTeamId: null })
@@ -153,7 +180,7 @@ export function BracketShell({
           isEditable={isEditable}
           onUpdate={handleKnockoutUpdate}
           saving={saving}
-          eligibilitySet={eligibilitySet}
+          eligibility={knockoutEligibility}
         />
       )}
     </div>

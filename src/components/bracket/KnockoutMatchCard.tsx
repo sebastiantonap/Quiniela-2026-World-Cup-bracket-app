@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
+import type { KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import type { MatchWithTeams, Prediction } from '@/types/app'
 
 interface KnockoutMatchCardProps {
@@ -11,10 +12,10 @@ interface KnockoutMatchCardProps {
   isEditable: boolean
   onUpdate: (home: number | null, away: number | null, winnerId: string | null) => void
   saving?: boolean
-  eligibilitySet: Set<string>
+  eligibility: KnockoutEligibility | undefined
 }
 
-export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibilitySet }: KnockoutMatchCardProps) {
+export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility }: KnockoutMatchCardProps) {
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
   const [localWinner, setLocalWinner] = useState<string | null>(
@@ -31,15 +32,17 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   const effectiveEditable = isEditable && !slotsUnfilled
   const hasResult = match.result_confirmed && match.home_score !== null
   const pts = prediction?.points_awarded
-  const isGated = prediction?.qualification_gated === true
 
-  // Warn when the user's current winner pick wasn't predicted to qualify from the group stage
-  const hasEligibilityData = eligibilitySet.size > 0
-  const pickedWinnerNotEligible =
-    effectiveEditable &&
-    hasEligibilityData &&
-    localWinner !== null &&
-    !eligibilitySet.has(localWinner)
+  // Eligibility status only meaningful once both teams are known.
+  const showEligibility = !slotsUnfilled && eligibility !== undefined
+  const status = showEligibility ? eligibility!.status : null
+  const forcedWinnerTeamId = eligibility?.forcedWinnerTeamId ?? null
+  const isVoid = status === 'void'
+  const isPartial = status === 'partial'
+  const forcedName =
+    forcedWinnerTeamId === homeTeam?.id ? `${homeFlag} ${homeName}`.trim()
+    : forcedWinnerTeamId === awayTeam?.id ? `${awayFlag} ${awayName}`.trim()
+    : ''
 
   function handleHomeChange(val: number | null) {
     setLocalHome(val)
@@ -55,27 +58,45 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
     onUpdate(localHome, localAway, newWinner)
   }
 
+  // Per-team winner radio state — locked to the forced team in the partial case.
+  function radioChecked(teamId: string) {
+    return isPartial ? teamId === forcedWinnerTeamId : localWinner === teamId
+  }
+
+  const borderClass = isPartial ? 'border-amber-800/40' : 'border-slate-700'
+
   return (
     <div
       className={`rounded-xl border bg-slate-800 p-4 ${
-        slotsUnfilled ? 'opacity-50' : ''
-      } ${isGated ? 'border-red-800/50' : 'border-slate-700'}`}
+        slotsUnfilled || isVoid ? 'opacity-60' : ''
+      } ${borderClass}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-medium text-slate-500">#{match.match_number}</span>
-        {hasResult && (
-          isGated ? (
-            <span className="rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-400">
-              0 pts — not in your group picks
-            </span>
-          ) : pts !== null && pts !== undefined ? (
-            pts > 0
-              ? <PointsBadge points={pts} />
-              : <span className="text-xs text-slate-500">0 pts</span>
-          ) : null
+        {hasResult && pts !== null && pts !== undefined && (
+          pts > 0
+            ? <PointsBadge points={pts} />
+            : <span className="text-xs text-slate-500">0 pts</span>
         )}
         {saving && <span className="text-xs text-slate-500">saving…</span>}
       </div>
+
+      {/* Eligibility status banner */}
+      {showEligibility && status === 'full' && (
+        <div className="mb-3 rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-emerald-400">
+          Full scoring
+        </div>
+      )}
+      {showEligibility && isPartial && (
+        <div className="mb-3 rounded-lg border border-amber-800/40 bg-amber-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-400">
+          Forced: {forcedName} advances · advance pts only
+        </div>
+      )}
+      {showEligibility && isVoid && (
+        <div className="mb-3 rounded-lg border border-slate-600 bg-slate-700/40 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-400">
+          Void — no points possible
+        </div>
+      )}
 
       {/* Home team */}
       <div className="flex items-center justify-between gap-2 py-1.5">
@@ -84,10 +105,11 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
             <input
               type="radio"
               name={`winner-${match.id}`}
-              checked={localWinner === homeTeam.id}
+              checked={radioChecked(homeTeam.id)}
+              disabled={isPartial}
               onChange={() => handleWinnerChange(homeTeam.id)}
               className="accent-amber-500"
-              title="Pick as winner"
+              title={isPartial ? 'Winner forced by eligibility' : 'Pick as winner'}
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
@@ -112,10 +134,11 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
             <input
               type="radio"
               name={`winner-${match.id}`}
-              checked={localWinner === awayTeam.id}
+              checked={radioChecked(awayTeam.id)}
+              disabled={isPartial}
               onChange={() => handleWinnerChange(awayTeam.id)}
               className="accent-amber-500"
-              title="Pick as winner"
+              title={isPartial ? 'Winner forced by eligibility' : 'Pick as winner'}
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
@@ -131,14 +154,9 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         )}
       </div>
 
-      {effectiveEditable && !pickedWinnerNotEligible && (
+      {effectiveEditable && status === 'full' && (
         <p className="mt-2 text-center text-xs text-slate-500">
           Select winner (radio) — required for points
-        </p>
-      )}
-      {pickedWinnerNotEligible && (
-        <p className="mt-2 text-center text-xs text-amber-400">
-          This team wasn't in your group picks — pick scores 0 pts
         </p>
       )}
       {slotsUnfilled && (
