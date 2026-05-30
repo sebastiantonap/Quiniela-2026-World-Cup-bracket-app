@@ -11,9 +11,10 @@ interface KnockoutMatchCardProps {
   isEditable: boolean
   onUpdate: (home: number | null, away: number | null, winnerId: string | null) => void
   saving?: boolean
+  eligibilitySet: Set<string>
 }
 
-export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving }: KnockoutMatchCardProps) {
+export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibilitySet }: KnockoutMatchCardProps) {
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
   const [localWinner, setLocalWinner] = useState<string | null>(
@@ -30,6 +31,15 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   const effectiveEditable = isEditable && !slotsUnfilled
   const hasResult = match.result_confirmed && match.home_score !== null
   const pts = prediction?.points_awarded
+  const isGated = prediction?.qualification_gated === true
+
+  // Warn when the user's current winner pick wasn't predicted to qualify from the group stage
+  const hasEligibilityData = eligibilitySet.size > 0
+  const pickedWinnerNotEligible =
+    effectiveEditable &&
+    hasEligibilityData &&
+    localWinner !== null &&
+    !eligibilitySet.has(localWinner)
 
   function handleHomeChange(val: number | null) {
     setLocalHome(val)
@@ -47,16 +57,22 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
 
   return (
     <div
-      className={`rounded-xl border border-slate-700 bg-slate-800 p-4 ${
+      className={`rounded-xl border bg-slate-800 p-4 ${
         slotsUnfilled ? 'opacity-50' : ''
-      }`}
+      } ${isGated ? 'border-red-800/50' : 'border-slate-700'}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-medium text-slate-500">#{match.match_number}</span>
-        {hasResult && pts !== null && pts !== undefined && (
-          pts > 0
-            ? <PointsBadge points={pts} />
-            : <span className="text-xs text-slate-500">0 pts</span>
+        {hasResult && (
+          isGated ? (
+            <span className="rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+              0 pts — not in your group picks
+            </span>
+          ) : pts !== null && pts !== undefined ? (
+            pts > 0
+              ? <PointsBadge points={pts} />
+              : <span className="text-xs text-slate-500">0 pts</span>
+          ) : null
         )}
         {saving && <span className="text-xs text-slate-500">saving…</span>}
       </div>
@@ -115,9 +131,14 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         )}
       </div>
 
-      {effectiveEditable && (
+      {effectiveEditable && !pickedWinnerNotEligible && (
         <p className="mt-2 text-center text-xs text-slate-500">
           Select winner (radio) — required for points
+        </p>
+      )}
+      {pickedWinnerNotEligible && (
+        <p className="mt-2 text-center text-xs text-amber-400">
+          This team wasn't in your group picks — pick scores 0 pts
         </p>
       )}
       {slotsUnfilled && (

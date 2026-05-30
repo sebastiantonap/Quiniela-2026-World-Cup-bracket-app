@@ -58,6 +58,17 @@ export function BracketShell({
     }, 0)
   }, [groups, matchesByRound, predictions, quals])
 
+  // Teams the user predicted to qualify from the group stage (1st/2nd per group + best-8 thirds)
+  const eligibilitySet = useMemo(() => {
+    const set = new Set<string>()
+    for (const pick of Object.values(quals)) {
+      if (pick.predicted1st) set.add(pick.predicted1st)
+      if (pick.predicted2nd) set.add(pick.predicted2nd)
+    }
+    for (const teamId of initialThirdPlaceSelections) set.add(teamId)
+    return set
+  }, [quals, initialThirdPlaceSelections])
+
   const activeRoundData = roundMap[activeRound]
   const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
   const activeMatches = matchesByRound[activeRound] ?? []
@@ -142,6 +153,7 @@ export function BracketShell({
           isEditable={isEditable}
           onUpdate={handleKnockoutUpdate}
           saving={saving}
+          eligibilitySet={eligibilitySet}
         />
       )}
     </div>

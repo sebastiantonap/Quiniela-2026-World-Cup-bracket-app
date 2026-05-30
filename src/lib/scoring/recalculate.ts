@@ -91,9 +91,46 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     const now = new Date().toISOString()
 
+    // Derive affected entry IDs up-front so the eligibility query can use them
+    const affectedEntryIds = Array.from(new Set(predictions.map((p) => p.entry_id)))
+
+    // ---------- Build eligibility map for knockout rounds ----------
+    // For knockout rounds, a prediction for a team scores 0 if the entry
+    // didn't predict that team to qualify from their group stage.
+    // Eligible teams = predicted 1st/2nd across all groups + best-8 third selections.
+    // Entries with no group_qualifications rows are excluded from gating.
+    const eligibilityMap = new Map<string, Set<string>>() // entry_id → Set<team_id>
+    if (round.name !== 'group_stage') {
+      const { data: allQualRows } = await supabase
+        .from('group_qualifications')
+        .select('entry_id, predicted_1st_team_id, predicted_2nd_team_id')
+        .in('entry_id', affectedEntryIds)
+
+      for (const row of allQualRows ?? []) {
+        if (!eligibilityMap.has(row.entry_id)) {
+          eligibilityMap.set(row.entry_id, new Set())
+        }
+        const set = eligibilityMap.get(row.entry_id)!
+        if (row.predicted_1st_team_id) set.add(row.predicted_1st_team_id)
+        if (row.predicted_2nd_team_id) set.add(row.predicted_2nd_team_id)
+      }
+
+      const { data: allThirdRows } = await supabase
+        .from('entry_best_third_selections')
+        .select('entry_id, team_id')
+        .in('entry_id', affectedEntryIds)
+
+      for (const row of allThirdRows ?? []) {
+        if (!eligibilityMap.has(row.entry_id)) {
+          eligibilityMap.set(row.entry_id, new Set())
+        }
+        eligibilityMap.get(row.entry_id)!.add(row.team_id)
+      }
+    }
+
     const updatedPredictions = predictions.map((pred) => {
       const match = matchMap.get(pred.match_id)!
-      const points = calculatePoints(
+      let points = calculatePoints(
         {
           predicted_home: pred.predicted_home,
           predicted_away: pred.predicted_away,
@@ -106,17 +143,31 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         },
         round.name as RoundName
       )
-      return { id: pred.id, entry_id: pred.entry_id, points_awarded: points }
+
+      // Gate: if the entry has qualification picks and the predicted winner
+      // wasn't in them, zero out this prediction.
+      let qualification_gated = false
+      if (
+        round.name !== 'group_stage' &&
+        pred.predicted_winner_team_id &&
+        eligibilityMap.has(pred.entry_id) &&
+        !eligibilityMap.get(pred.entry_id)!.has(pred.predicted_winner_team_id)
+      ) {
+        points = 0
+        qualification_gated = true
+      }
+
+      return { id: pred.id, entry_id: pred.entry_id, points_awarded: points, qualification_gated }
     })
 
     for (const pred of updatedPredictions) {
       await supabase
         .from('predictions')
-        .update({ points_awarded: pred.points_awarded, calculated_at: now })
+        .update({ points_awarded: pred.points_awarded, qualification_gated: pred.qualification_gated, calculated_at: now })
         .eq('id', pred.id)
     }
 
-    const affectedEntryIds = Array.from(new Set(updatedPredictions.map((p) => p.entry_id)))
+    // affectedEntryIds already declared above
 
     // ---------- Group qualification scoring (group_stage only) ----------
     if (round.name === 'group_stage') {

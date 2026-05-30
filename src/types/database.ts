@@ -92,6 +92,7 @@ export interface Database {
           predicted_away: number | null
           predicted_winner_team_id: string | null
           points_awarded: number | null
+          qualification_gated: boolean
           calculated_at: string | null
           created_at: string
           updated_at: string

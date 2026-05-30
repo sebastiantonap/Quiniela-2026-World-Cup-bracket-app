@@ -9,9 +9,10 @@ interface KnockoutTabProps {
   isEditable: boolean
   onUpdate: (matchId: string, home: number | null, away: number | null, winnerId: string | null) => void
   saving: Record<string, boolean>
+  eligibilitySet: Set<string>
 }
 
-export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving }: KnockoutTabProps) {
+export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving, eligibilitySet }: KnockoutTabProps) {
   if (matches.length === 0) {
     return (
       <div className="py-16 text-center text-slate-500">
@@ -30,6 +31,7 @@ export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving
           isEditable={isEditable}
           onUpdate={(home, away, winnerId) => onUpdate(match.id, home, away, winnerId)}
           saving={saving[match.id]}
+          eligibilitySet={eligibilitySet}
         />
       ))}
     </div>
