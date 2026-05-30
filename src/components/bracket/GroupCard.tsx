@@ -5,6 +5,7 @@ import { MatchRow } from './MatchRow'
 import { GroupQualificationPicker } from './GroupQualificationPicker'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import type { MatchWithTeams, Prediction, Team, QualPick } from '@/types/app'
+import type { StandingAmbiguities } from '@/lib/standings/predictedStandings'
 
 interface GroupCardProps {
   letter: string
@@ -21,6 +22,29 @@ interface GroupCardProps {
   qualSaving?: boolean
 }
 
+/** IDs of teams that plausibly occupy each position given the ambiguities. */
+function plausibleIds(standings: ReturnType<typeof computePredictedStandings>['standings'], amb: StandingAmbiguities, pos: 0 | 1 | 2): Set<string> {
+  const ids = new Set<string>()
+  // pos 0 (1st): tied with pos 1 when amb.first
+  if (pos === 0) {
+    if (standings[0]) ids.add(standings[0].team.id)
+    if (amb.first && standings[1]) ids.add(standings[1].team.id)
+  }
+  // pos 1 (2nd): affected by amb.first (spills up) or amb.second (spills down)
+  if (pos === 1) {
+    if (standings[1]) ids.add(standings[1].team.id)
+    if (amb.first && standings[0]) ids.add(standings[0].team.id)
+    if (amb.second && standings[2]) ids.add(standings[2].team.id)
+  }
+  // pos 2 (3rd): affected by amb.second (spills up) or amb.third (spills down)
+  if (pos === 2) {
+    if (standings[2]) ids.add(standings[2].team.id)
+    if (amb.second && standings[1]) ids.add(standings[1].team.id)
+    if (amb.third && standings[3]) ids.add(standings[3].team.id)
+  }
+  return ids
+}
+
 export function GroupCard({
   letter,
   groupId,
@@ -35,44 +59,63 @@ export function GroupCard({
   errors,
   qualSaving,
 }: GroupCardProps) {
-  const { standings, hasAmbiguity, ambiguousTeams, predictedMatchCount, totalMatchCount } =
-    useMemo(
-      () => computePredictedStandings(teams, matches, predictions),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [teams, matches, predictions]
-    )
+  const { standings, ambiguities, predictedMatchCount, totalMatchCount } = useMemo(
+    () => computePredictedStandings(teams, matches, predictions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [teams, matches, predictions]
+  )
 
   const autoFillKeyRef = useRef('')
   const qualPickRef = useRef(qualPick)
   useEffect(() => { qualPickRef.current = qualPick })
 
   useEffect(() => {
-    // Only auto-fill when there's real prediction data and the round is open
-    if (!isEditable || standings.length < 2 || predictedMatchCount === 0) return
+    if (!isEditable || standings.length < 4 || predictedMatchCount === 0) return
 
-    const first = standings[0].team.id
-    const second = standings[1].team.id
-    const thirdId = standings[2]?.team.id ?? null
-    const key = `${first}|${second}|${hasAmbiguity ? 'AMB' : (thirdId ?? 'NONE')}`
+    const { first: amb1, second: amb2, third: amb3 } = ambiguities
 
+    // What auto-fill would write for each position (null = user must choose)
+    const autoFirst  = amb1              ? null : standings[0].team.id
+    const autoSecond = (amb1 || amb2)    ? null : standings[1].team.id
+    const autoThird  = (amb2 || amb3)    ? null : (standings[2]?.team.id ?? null)
+
+    const key = `${autoFirst ?? 'X'}|${autoSecond ?? 'X'}|${autoThird ?? 'X'}`
     if (key === autoFillKeyRef.current) return
     autoFillKeyRef.current = key
 
-    const updates: Partial<QualPick> = { predicted1st: first, predicted2nd: second }
+    const updates: Partial<QualPick> = {}
 
-    if (!hasAmbiguity) {
-      updates.predicted3rd = thirdId
-    } else {
-      // Ambiguous: keep the user's 3rd pick only if it's one of the two tied teams
-      const current3rd = qualPickRef.current?.predicted3rd ?? null
-      const ambigIds = new Set(ambiguousTeams?.map((t) => t.id) ?? [])
-      if (!current3rd || !ambigIds.has(current3rd)) {
-        updates.predicted3rd = null
-      }
+    // Unambiguous positions: overwrite with computed value
+    if (autoFirst  !== null) updates.predicted1st = autoFirst
+    if (autoSecond !== null) updates.predicted2nd = autoSecond
+    if (autoThird  !== null) updates.predicted3rd = autoThird
+
+    // Ambiguous positions: keep the user's pick only if it's still plausible;
+    // otherwise clear so the picker shows an empty / required state.
+    if (autoFirst === null) {
+      const cur = qualPickRef.current?.predicted1st ?? null
+      if (!cur || !plausibleIds(standings, ambiguities, 0).has(cur)) updates.predicted1st = null
+    }
+    if (autoSecond === null) {
+      const cur = qualPickRef.current?.predicted2nd ?? null
+      if (!cur || !plausibleIds(standings, ambiguities, 1).has(cur)) updates.predicted2nd = null
+    }
+    if (autoThird === null) {
+      const cur = qualPickRef.current?.predicted3rd ?? null
+      if (!cur || !plausibleIds(standings, ambiguities, 2).has(cur)) updates.predicted3rd = null
     }
 
     onQualUpdate(groupId, updates)
-  }, [standings, hasAmbiguity, ambiguousTeams, predictedMatchCount, isEditable, groupId, onQualUpdate])
+  }, [standings, ambiguities, predictedMatchCount, isEditable, groupId, onQualUpdate])
+
+  // Per-row display flags
+  const rowAmbig = [
+    ambiguities.first,                    // row 0 (1st): tied with 2nd
+    ambiguities.first || ambiguities.second, // row 1 (2nd): tied above or below
+    ambiguities.second || ambiguities.third, // row 2 (3rd): tied above or below
+    ambiguities.third,                    // row 3 (4th): tied with 3rd
+  ]
+  const hasAnyAmbiguity = ambiguities.first || ambiguities.second || ambiguities.third
 
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-800">
@@ -115,35 +158,40 @@ export function GroupCard({
             </tr>
           </thead>
           <tbody>
-            {standings.map((s, i) => {
-              const isAmbig = hasAmbiguity && (i === 2 || i === 3)
-              return (
-                <tr
-                  key={s.team.id}
-                  className={`border-t border-slate-700/50 ${
-                    i < 2 ? 'bg-green-900/10' : isAmbig ? 'bg-amber-900/10' : ''
-                  }`}
-                >
-                  <td className="pl-3 pr-1 py-1.5 text-slate-500">{i + 1}</td>
-                  <td className="px-1 py-1.5 font-medium text-slate-200">
-                    {s.team.flag_emoji} {s.team.name}
-                    {i < 2 && <span className="ml-1 text-[10px] text-green-400">Q</span>}
-                    {isAmbig && <span className="ml-1 text-[10px] text-amber-400">?</span>}
-                  </td>
-                  <td className="px-2 py-1.5 text-center font-bold text-slate-100">{s.points}</td>
-                  <td className="px-2 py-1.5 text-center text-slate-300">{s.goals_for}</td>
-                  <td className="px-2 py-1.5 text-center text-slate-300">{s.goals_against}</td>
-                  <td className="pr-3 py-1.5 text-center text-slate-400">
-                    {s.goal_difference > 0 ? '+' : ''}{s.goal_difference}
-                  </td>
-                </tr>
-              )
-            })}
+            {standings.map((s, i) => (
+              <tr
+                key={s.team.id}
+                className={`border-t border-slate-700/50 ${
+                  predictedMatchCount > 0 && rowAmbig[i]
+                    ? 'bg-amber-900/10'
+                    : i < 2
+                    ? 'bg-green-900/10'
+                    : ''
+                }`}
+              >
+                <td className="pl-3 pr-1 py-1.5 text-slate-500">{i + 1}</td>
+                <td className="px-1 py-1.5 font-medium text-slate-200">
+                  {s.team.flag_emoji} {s.team.name}
+                  {predictedMatchCount > 0 && !rowAmbig[i] && i < 2 && (
+                    <span className="ml-1 text-[10px] text-green-400">Q</span>
+                  )}
+                  {predictedMatchCount > 0 && rowAmbig[i] && (
+                    <span className="ml-1 text-[10px] text-amber-400">?</span>
+                  )}
+                </td>
+                <td className="px-2 py-1.5 text-center font-bold text-slate-100">{s.points}</td>
+                <td className="px-2 py-1.5 text-center text-slate-300">{s.goals_for}</td>
+                <td className="px-2 py-1.5 text-center text-slate-300">{s.goals_against}</td>
+                <td className="pr-3 py-1.5 text-center text-slate-400">
+                  {s.goal_difference > 0 ? '+' : ''}{s.goal_difference}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-        {hasAmbiguity && ambiguousTeams && (
+        {predictedMatchCount > 0 && hasAnyAmbiguity && (
           <p className="px-3 py-2 text-[10px] text-amber-400 bg-amber-900/10 border-t border-amber-800/30">
-            {ambiguousTeams[0].name} and {ambiguousTeams[1].name} are tied on all tiebreakers — pick 3rd place manually below.
+            Tied positions marked with ? — pick those manually below.
           </p>
         )}
       </div>
@@ -156,7 +204,7 @@ export function GroupCard({
           isEditable={isEditable}
           onUpdate={onQualUpdate}
           saving={qualSaving}
-          ambiguousTeams={hasAmbiguity ? ambiguousTeams : null}
+          ambiguities={predictedMatchCount > 0 ? ambiguities : undefined}
         />
       </div>
     </div>
