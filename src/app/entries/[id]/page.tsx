@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getPublicEntry } from '@/actions/entries'
+import { getPublicEntry, getEntries } from '@/actions/entries'
 import { getSessionEmail } from '@/lib/session'
 import { getPredictionsForEntry } from '@/actions/predictions'
 import { getQualificationsForEntry } from '@/actions/qualifications'
@@ -36,6 +37,7 @@ export default async function EntryPage({ params }: PageProps) {
     { data: groupsData },
     predictions,
     quals,
+    myEntries,
   ] = await Promise.all([
     supabase.from('rounds').select('*').order('sort_order', { ascending: true }),
     supabase
@@ -52,6 +54,7 @@ export default async function EntryPage({ params }: PageProps) {
     supabase.from('groups').select('*, teams(*)').order('name', { ascending: true }),
     getPredictionsForEntry(id),
     getQualificationsForEntry(id),
+    isOwner ? getEntries() : Promise.resolve([]),
   ])
 
   const rounds: Round[] = roundsData ?? []
@@ -90,7 +93,30 @@ export default async function EntryPage({ params }: PageProps) {
             <span>/</span>
             <span className="font-medium text-slate-200">{entry.name}</span>
           </div>
-          <div className="mt-2 flex items-baseline gap-3">
+
+          {/* Entry switcher — only shown to the owner when they have 2 brackets */}
+          {isOwner && myEntries.length > 1 && (
+            <div className="mt-3 flex gap-1 rounded-xl bg-slate-800 p-1 w-fit border border-slate-700">
+              {myEntries.map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/entries/${e.id}`}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition whitespace-nowrap ${
+                    e.id === id
+                      ? 'bg-slate-700 text-slate-100 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {e.name}
+                  <span className={`ml-2 text-xs tabular-nums ${e.id === id ? 'text-amber-400' : 'text-slate-500'}`}>
+                    {e.total_points} pts
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-baseline gap-3">
             <h1 className="text-2xl font-bold text-slate-100">{entry.name}</h1>
             <span className="text-lg font-semibold text-amber-400">{entry.total_points} pts</span>
           </div>
