@@ -15,7 +15,7 @@ export async function confirmThirdPlaceQualifiers(teamIds: string[]): Promise<{ 
   const { error: resetError } = await supabase
     .from('teams')
     .update({ best_third_qualified: false })
-    .neq('id', 'none')
+    .eq('best_third_qualified', true)
 
   if (resetError) return { error: resetError.message }
 
