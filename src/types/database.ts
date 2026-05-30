@@ -28,6 +28,7 @@ export interface Database {
           code: string
           flag_emoji: string | null
           group_id: string | null
+          best_third_qualified: boolean
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['teams']['Row'], 'created_at'>
