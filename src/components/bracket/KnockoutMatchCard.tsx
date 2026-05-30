@@ -44,6 +44,10 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
     : forcedWinnerTeamId === awayTeam?.id ? `${awayFlag} ${awayName}`.trim()
     : ''
 
+  // Scores and winner selection only ever affect points in the FULL case. In partial
+  // (winner forced, advance points only) and void (no points), lock the inputs out.
+  const selectionLocked = showEligibility && (isPartial || isVoid)
+
   function handleHomeChange(val: number | null) {
     setLocalHome(val)
     onUpdate(val, localAway, localWinner)
@@ -58,9 +62,25 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
     onUpdate(localHome, localAway, newWinner)
   }
 
-  // Per-team winner radio state — locked to the forced team in the partial case.
-  function radioChecked(teamId: string) {
-    return isPartial ? teamId === forcedWinnerTeamId : localWinner === teamId
+  function renderTrailing(teamId: string | undefined, localScore: number | null, onScoreChange: (v: number | null) => void, predicted: number | null | undefined) {
+    if (selectionLocked) {
+      if (isPartial && teamId && teamId === forcedWinnerTeamId) {
+        return (
+          <span className="rounded bg-emerald-900/30 px-2 py-1 text-[11px] font-semibold text-emerald-400">
+            ✓ advances
+          </span>
+        )
+      }
+      return <span className="w-12 text-center text-sm text-slate-600">—</span>
+    }
+    if (effectiveEditable) {
+      return <ScoreInput value={localScore} onChange={onScoreChange} />
+    }
+    return (
+      <span className="w-12 rounded bg-slate-700 py-1 text-center text-sm font-semibold text-slate-300">
+        {predicted ?? '-'}
+      </span>
+    )
   }
 
   const borderClass = isPartial ? 'border-amber-800/40' : 'border-slate-700'
@@ -101,28 +121,21 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       {/* Home team */}
       <div className="flex items-center justify-between gap-2 py-1.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {effectiveEditable && homeTeam && (
+          {effectiveEditable && homeTeam && !selectionLocked && (
             <input
               type="radio"
               name={`winner-${match.id}`}
-              checked={radioChecked(homeTeam.id)}
-              disabled={isPartial}
+              checked={localWinner === homeTeam.id}
               onChange={() => handleWinnerChange(homeTeam.id)}
               className="accent-amber-500"
-              title={isPartial ? 'Winner forced by eligibility' : 'Pick as winner'}
+              title="Pick as winner"
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
             {homeFlag} {homeName}
           </span>
         </div>
-        {effectiveEditable ? (
-          <ScoreInput value={localHome} onChange={handleHomeChange} />
-        ) : (
-          <span className="w-12 rounded bg-slate-700 py-1 text-center text-sm font-semibold text-slate-300">
-            {prediction?.predicted_home ?? '-'}
-          </span>
-        )}
+        {renderTrailing(homeTeam?.id, localHome, handleHomeChange, prediction?.predicted_home)}
       </div>
 
       <div className="border-t border-slate-700 py-0.5 text-center text-xs text-slate-500">vs</div>
@@ -130,33 +143,31 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       {/* Away team */}
       <div className="flex items-center justify-between gap-2 py-1.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {effectiveEditable && awayTeam && (
+          {effectiveEditable && awayTeam && !selectionLocked && (
             <input
               type="radio"
               name={`winner-${match.id}`}
-              checked={radioChecked(awayTeam.id)}
-              disabled={isPartial}
+              checked={localWinner === awayTeam.id}
               onChange={() => handleWinnerChange(awayTeam.id)}
               className="accent-amber-500"
-              title={isPartial ? 'Winner forced by eligibility' : 'Pick as winner'}
+              title="Pick as winner"
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
             {awayFlag} {awayName}
           </span>
         </div>
-        {effectiveEditable ? (
-          <ScoreInput value={localAway} onChange={handleAwayChange} />
-        ) : (
-          <span className="w-12 rounded bg-slate-700 py-1 text-center text-sm font-semibold text-slate-300">
-            {prediction?.predicted_away ?? '-'}
-          </span>
-        )}
+        {renderTrailing(awayTeam?.id, localAway, handleAwayChange, prediction?.predicted_away)}
       </div>
 
       {effectiveEditable && status === 'full' && (
         <p className="mt-2 text-center text-xs text-slate-500">
           Select winner (radio) — required for points
+        </p>
+      )}
+      {effectiveEditable && isPartial && (
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Winner forced — you score only if {forcedName} advances
         </p>
       )}
       {slotsUnfilled && (
