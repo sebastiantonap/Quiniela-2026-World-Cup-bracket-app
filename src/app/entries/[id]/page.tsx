@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getEntry } from '@/actions/entries'
+import { getPublicEntry } from '@/actions/entries'
+import { getSessionEmail } from '@/lib/session'
 import { getPredictionsForEntry } from '@/actions/predictions'
 import { getQualificationsForEntry } from '@/actions/qualifications'
 import { Nav } from '@/components/Nav'
@@ -14,8 +15,18 @@ interface PageProps {
 
 export default async function EntryPage({ params }: PageProps) {
   const { id } = await params
-  const entry = await getEntry(id)
-  if (!entry) notFound()
+
+  const [entry, viewerEmail] = await Promise.all([
+    getPublicEntry(id),
+    getSessionEmail(),
+  ])
+
+  if (!entry) {
+    if (!viewerEmail) notFound()
+    notFound()
+  }
+
+  const isOwner = viewerEmail === entry.user_email
 
   const supabase = getSupabaseAdminClient()
 
@@ -59,11 +70,23 @@ export default async function EntryPage({ params }: PageProps) {
     <div className="min-h-screen">
       <Nav />
       <main className="mx-auto max-w-7xl px-4 py-8">
+        {!isOwner && (
+          <div className="mb-4 rounded-xl border border-amber-700/40 bg-amber-900/15 px-4 py-2.5 text-sm text-amber-300">
+            Viewing <span className="font-semibold">{entry.name}</span> — read-only
+          </div>
+        )}
+
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <a href="/dashboard" className="transition hover:text-slate-300">
-              My Brackets
-            </a>
+            {isOwner ? (
+              <a href="/dashboard" className="transition hover:text-slate-300">
+                My Brackets
+              </a>
+            ) : (
+              <a href="/leaderboard" className="transition hover:text-slate-300">
+                Leaderboard
+              </a>
+            )}
             <span>/</span>
             <span className="font-medium text-slate-200">{entry.name}</span>
           </div>
@@ -80,6 +103,7 @@ export default async function EntryPage({ params }: PageProps) {
           initialPredictions={predictions}
           groups={groups}
           initialQuals={quals}
+          readOnly={!isOwner}
         />
       </main>
     </div>

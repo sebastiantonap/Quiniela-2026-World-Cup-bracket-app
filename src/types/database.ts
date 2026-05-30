@@ -73,6 +73,7 @@ export interface Database {
           user_email: string
           name: string
           total_points: number
+          rank_snapshot: number | null
           created_at: string
           updated_at: string
         }
@@ -134,8 +135,12 @@ export interface Database {
           entry_name: string
           total_points: number
           created_at: string
+          rank_snapshot: number | null
           predictions_count: number
+          correct_predictions: number
+          scored_predictions: number
           rank: number
+          rank_delta: number
         }
       }
     }

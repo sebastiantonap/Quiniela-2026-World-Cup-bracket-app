@@ -34,6 +34,21 @@ export async function getEntry(id: string): Promise<Entry | null> {
   return data ?? null
 }
 
+/** Fetches any entry by ID — requires login but not ownership. */
+export async function getPublicEntry(id: string): Promise<Entry | null> {
+  const email = await getSessionEmail()
+  if (!email) return null
+
+  const supabase = getSupabaseAdminClient()
+  const { data } = await supabase
+    .from('entries')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  return data ?? null
+}
+
 export async function createEntry(name: string): Promise<{ id?: string; error?: string }> {
   const email = await getSessionEmail()
   if (!email) return { error: 'Not signed in.' }

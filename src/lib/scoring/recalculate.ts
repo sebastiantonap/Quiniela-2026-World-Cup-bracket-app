@@ -45,6 +45,21 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
   await supabase.from('rounds').update({ calculating: true }).eq('id', roundId)
 
   try {
+    // Snapshot every entry's current rank before points change
+    const { data: currentRanks } = await supabase
+      .from('leaderboard')
+      .select('entry_id, rank')
+    if (currentRanks && currentRanks.length > 0) {
+      await Promise.all(
+        currentRanks.map((row) =>
+          supabase
+            .from('entries')
+            .update({ rank_snapshot: row.rank })
+            .eq('id', row.entry_id)
+        )
+      )
+    }
+
     const { data: round } = await supabase
       .from('rounds')
       .select('name')

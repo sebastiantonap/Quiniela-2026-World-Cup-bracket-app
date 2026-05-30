@@ -17,6 +17,7 @@ interface BracketShellProps {
   initialPredictions: Record<string, Prediction>
   groups: (Group & { teams: Team[] })[]
   initialQuals: QualState
+  readOnly?: boolean
 }
 
 export function BracketShell({
@@ -26,6 +27,7 @@ export function BracketShell({
   initialPredictions,
   groups,
   initialQuals,
+  readOnly = false,
 }: BracketShellProps) {
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
 
@@ -55,7 +57,7 @@ export function BracketShell({
   }, [groups, matchesByRound, predictions, quals])
 
   const activeRoundData = roundMap[activeRound]
-  const isEditable = activeRoundData?.status === 'accepting_predictions'
+  const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
   const activeMatches = matchesByRound[activeRound] ?? []
 
   function handleGroupUpdate(matchId: string, home: number | null, away: number | null) {

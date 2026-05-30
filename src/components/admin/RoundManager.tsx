@@ -19,6 +19,12 @@ const NEXT_STATUS: Partial<Record<RoundStatus, RoundStatus>> = {
   locked: 'completed',
 }
 
+const PREV_STATUS: Partial<Record<RoundStatus, RoundStatus>> = {
+  accepting_predictions: 'pending',
+  locked: 'accepting_predictions',
+  completed: 'locked',
+}
+
 export function RoundManager({ rounds }: RoundManagerProps) {
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
@@ -37,6 +43,26 @@ export function RoundManager({ rounds }: RoundManagerProps) {
       router.refresh()
     }
     setLoading((prev) => ({ ...prev, [round.id]: false }))
+  }
+
+  async function handleRevert(round: Round) {
+    const prevStatus = PREV_STATUS[round.status]
+    if (!prevStatus) return
+    const label = ROUND_LABELS[round.name]
+    const confirmed = window.confirm(
+      `Revert "${label}" from "${round.status.replace(/_/g, ' ')}" back to "${prevStatus.replace(/_/g, ' ')}"?`
+    )
+    if (!confirmed) return
+
+    setLoading((prev) => ({ ...prev, [`revert-${round.id}`]: true }))
+    const result = await setRoundStatus(round.id, prevStatus)
+    if (result.error) {
+      setFeedback((prev) => ({ ...prev, [round.id]: result.error! }))
+    } else {
+      setFeedback((prev) => ({ ...prev, [round.id]: `Reverted to "${prevStatus}"` }))
+      router.refresh()
+    }
+    setLoading((prev) => ({ ...prev, [`revert-${round.id}`]: false }))
   }
 
   async function handleRecalculate(round: Round) {
@@ -80,6 +106,16 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                         onClick={() => handleTransition(round)}
                       >
                         → {nextStatus.replace(/_/g, ' ')}
+                      </Button>
+                    )}
+                    {PREV_STATUS[round.status] && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={loading[`revert-${round.id}`]}
+                        onClick={() => handleRevert(round)}
+                      >
+                        ← revert
                       </Button>
                     )}
                     {(round.status === 'locked' || round.status === 'completed') && (

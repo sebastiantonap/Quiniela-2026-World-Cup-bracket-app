@@ -32,8 +32,17 @@ export interface LeaderboardRow {
   entry_name: string
   total_points: number
   created_at: string
+  rank_snapshot: number | null
   predictions_count: number
+  correct_predictions: number
+  scored_predictions: number
   rank: number
+  rank_delta: number
+}
+
+export interface EnrichedLeaderboardRow extends LeaderboardRow {
+  max_potential: number
+  round_breakdown: Partial<Record<RoundName, number>>
 }
 
 export interface TeamStanding {
