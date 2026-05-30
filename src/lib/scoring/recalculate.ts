@@ -167,7 +167,30 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
       }
     }
 
-    // ---------- Re-sum total_points (match predictions + qualifications) ----------
+    // ---------- Score best-8 third-place selections (group_stage only) ----------
+    if (round.name === 'group_stage') {
+      const { data: advancingThirds } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('best_third_qualified', true)
+
+      const advancingIds = new Set((advancingThirds ?? []).map((t) => t.id))
+
+      const { data: thirdSelections } = await supabase
+        .from('entry_best_third_selections')
+        .select('id, entry_id, team_id')
+        .in('entry_id', affectedEntryIds)
+
+      for (const sel of thirdSelections ?? []) {
+        const pts = advancingIds.has(sel.team_id) ? 1 : 0
+        await supabase
+          .from('entry_best_third_selections')
+          .update({ points_awarded: pts, calculated_at: now })
+          .eq('id', sel.id)
+      }
+    }
+
+    // ---------- Re-sum total_points (match predictions + qualifications + best-8 thirds) ----------
     for (const entryId of affectedEntryIds) {
       const { data: allPreds } = await supabase
         .from('predictions')
@@ -179,9 +202,15 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         .select('points_awarded')
         .eq('entry_id', entryId)
 
+      const { data: allThirdSelections } = await supabase
+        .from('entry_best_third_selections')
+        .select('points_awarded')
+        .eq('entry_id', entryId)
+
       const total =
         (allPreds ?? []).reduce((sum, p) => sum + (p.points_awarded ?? 0), 0) +
-        (allQuals ?? []).reduce((sum, q) => sum + (q.points_awarded ?? 0), 0)
+        (allQuals ?? []).reduce((sum, q) => sum + (q.points_awarded ?? 0), 0) +
+        (allThirdSelections ?? []).reduce((sum, s) => sum + (s.points_awarded ?? 0), 0)
 
       await supabase
         .from('entries')

@@ -126,6 +126,19 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['user_sessions']['Row'], 'created_at'>
         Update: Partial<Database['public']['Tables']['user_sessions']['Insert']>
       }
+      entry_best_third_selections: {
+        Row: {
+          id: string
+          entry_id: string
+          team_id: string
+          points_awarded: number | null
+          calculated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['entry_best_third_selections']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['entry_best_third_selections']['Insert']>
+      }
     }
     Views: {
       leaderboard: {

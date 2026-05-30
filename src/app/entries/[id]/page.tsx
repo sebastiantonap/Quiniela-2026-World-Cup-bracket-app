@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getPublicEntry, getEntries } from '@/actions/entries'
+import { getThirdPlaceSelectionsForEntry } from '@/actions/thirdPlaceSelections'
 import { getSessionEmail } from '@/lib/session'
 import { getPredictionsForEntry } from '@/actions/predictions'
 import { getQualificationsForEntry } from '@/actions/qualifications'
@@ -38,6 +39,7 @@ export default async function EntryPage({ params }: PageProps) {
     predictions,
     quals,
     myEntries,
+    thirdPlaceSelections,
   ] = await Promise.all([
     supabase.from('rounds').select('*').order('sort_order', { ascending: true }),
     supabase
@@ -55,6 +57,7 @@ export default async function EntryPage({ params }: PageProps) {
     getPredictionsForEntry(id),
     getQualificationsForEntry(id),
     isOwner ? getEntries() : Promise.resolve([]),
+    getThirdPlaceSelectionsForEntry(id),
   ])
 
   const rounds: Round[] = roundsData ?? []
@@ -129,6 +132,7 @@ export default async function EntryPage({ params }: PageProps) {
           initialPredictions={predictions}
           groups={groups}
           initialQuals={quals}
+          initialThirdPlaceSelections={thirdPlaceSelections}
           readOnly={!isOwner}
         />
       </main>

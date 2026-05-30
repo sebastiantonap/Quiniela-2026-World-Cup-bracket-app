@@ -17,6 +17,7 @@ interface BracketShellProps {
   initialPredictions: Record<string, Prediction>
   groups: (Group & { teams: Team[] })[]
   initialQuals: QualState
+  initialThirdPlaceSelections: string[]
   readOnly?: boolean
 }
 
@@ -27,6 +28,7 @@ export function BracketShell({
   initialPredictions,
   groups,
   initialQuals,
+  initialThirdPlaceSelections,
   readOnly = false,
 }: BracketShellProps) {
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
@@ -119,6 +121,7 @@ export function BracketShell({
 
       {activeRound === 'group_stage' ? (
         <GroupStageTab
+          entryId={entryId}
           matches={activeMatches}
           groups={groups}
           predictions={predictions}
@@ -130,6 +133,7 @@ export function BracketShell({
           errors={errors}
           qualSaving={qualSaving}
           unresolvedCount={unresolvedGroupCount}
+          initialThirdPlaceSelections={initialThirdPlaceSelections}
         />
       ) : (
         <KnockoutTab
