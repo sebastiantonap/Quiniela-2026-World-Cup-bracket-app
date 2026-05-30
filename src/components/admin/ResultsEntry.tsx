@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveMatchResult } from '@/actions/admin/results'
+import { saveMatchResult, clearMatchResult } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
@@ -33,6 +33,24 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
       ...prev,
       [matchId]: { ...prev[matchId], home: prev[matchId]?.home ?? '', away: prev[matchId]?.away ?? '', winner: prev[matchId]?.winner ?? '', [field]: value },
     }))
+  }
+
+  async function handleClear(match: MatchWithTeams) {
+    const homeName = match.home_team?.name ?? match.placeholder_home ?? '?'
+    const awayName = match.away_team?.name ?? match.placeholder_away ?? '?'
+    const confirmed = window.confirm(
+      `Clear result for match ${match.match_number}: ${homeName} vs ${awayName}?`
+    )
+    if (!confirmed) return
+
+    setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: true }))
+    const result = await clearMatchResult(match.id)
+    setFeedback((prev) => ({
+      ...prev,
+      [match.id]: result.error ?? 'Result cleared',
+    }))
+    setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: false }))
+    router.refresh()
   }
 
   async function handleSave(match: MatchWithTeams) {
@@ -150,6 +168,17 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                 <Button size="sm" loading={loading[match.id]} onClick={() => handleSave(match)}>
                   Save
                 </Button>
+                {match.result_confirmed && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={loading[`clear-${match.id}`]}
+                    onClick={() => handleClear(match)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    ✕ clear
+                  </Button>
+                )}
               </div>
 
               {feedback[match.id] && (

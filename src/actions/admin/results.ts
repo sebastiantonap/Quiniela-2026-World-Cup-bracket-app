@@ -38,6 +38,29 @@ export async function saveMatchResult(
   return {}
 }
 
+export async function clearMatchResult(matchId: string): Promise<{ error?: string }> {
+  try {
+    await assertAdmin()
+  } catch {
+    return { error: 'Unauthorized' }
+  }
+
+  const admin = getSupabaseAdminClient()
+  const { error } = await admin
+    .from('matches')
+    .update({
+      home_score: null,
+      away_score: null,
+      winner_team_id: null,
+      result_confirmed: false,
+    })
+    .eq('id', matchId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/admin')
+  return {}
+}
+
 export async function assignKnockoutTeams(
   matchId: string,
   homeTeamId: string | null,
