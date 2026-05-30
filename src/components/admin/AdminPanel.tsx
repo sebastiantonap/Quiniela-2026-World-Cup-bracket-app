@@ -36,7 +36,7 @@ export function AdminPanel({ rounds, matches, teams, users }: AdminPanelProps) {
           href="/api/admin/export"
           className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm text-slate-200 transition-colors"
         >
-          ↓ Export CSV
+          ↓ Export XLSX
         </a>
       </div>
       <div className="mb-6 flex gap-1 rounded-xl bg-slate-800 p-1 w-fit border border-slate-700">
