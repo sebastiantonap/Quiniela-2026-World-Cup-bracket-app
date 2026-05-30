@@ -15,6 +15,7 @@ interface GroupStageTabProps {
   saving: Record<string, boolean>
   errors: Record<string, string>
   qualSaving: Record<string, boolean>
+  unresolvedCount: number
 }
 
 export function GroupStageTab({
@@ -28,10 +29,18 @@ export function GroupStageTab({
   saving,
   errors,
   qualSaving,
+  unresolvedCount,
 }: GroupStageTabProps) {
   const groupMap = Object.fromEntries(groups.map((g) => [g.name, g]))
 
   return (
+    <div className="space-y-4">
+      {unresolvedCount > 0 && isEditable && (
+        <div className="rounded-xl border border-amber-700/40 bg-amber-900/20 px-4 py-3 text-sm text-amber-300">
+          <span className="font-semibold">{unresolvedCount} group{unresolvedCount !== 1 ? 's' : ''}</span>
+          {' '}have tied positions that need manual resolution before your bracket is complete.
+        </div>
+      )}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {GROUP_LETTERS.map((letter) => {
         const group = groupMap[letter]
@@ -56,6 +65,7 @@ export function GroupStageTab({
           />
         )
       })}
+    </div>
     </div>
   )
 }

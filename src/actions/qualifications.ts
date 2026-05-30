@@ -53,6 +53,11 @@ export async function upsertQualification(
     return { error: 'Group stage predictions are closed' }
   }
 
+  // 1st and 2nd must always be set; null here means an unresolved tie on the client.
+  if (!predicted1st || !predicted2nd) {
+    return { error: 'Resolve all tied positions before saving.' }
+  }
+
   const { error } = await supabase.from('group_qualifications').upsert(
     {
       entry_id: entryId,

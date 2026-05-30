@@ -108,6 +108,14 @@ export function GroupCard({
     onQualUpdate(groupId, updates)
   }, [standings, ambiguities, predictedMatchCount, isEditable, groupId, onQualUpdate])
 
+  // True when any position is both ambiguous and not yet manually resolved
+  const hasUnresolved =
+    isEditable &&
+    predictedMatchCount > 0 &&
+    ((ambiguities.first && !qualPick?.predicted1st) ||
+      ((ambiguities.first || ambiguities.second) && !qualPick?.predicted2nd) ||
+      ((ambiguities.second || ambiguities.third) && !qualPick?.predicted3rd))
+
   // Per-row display flags
   const rowAmbig = [
     ambiguities.first,                    // row 0 (1st): tied with 2nd
@@ -195,6 +203,12 @@ export function GroupCard({
           </p>
         )}
       </div>
+
+      {hasUnresolved && (
+        <div className="mx-4 mb-3 rounded-lg border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-xs text-amber-300">
+          Tied positions need manual resolution — pick the highlighted slots below.
+        </div>
+      )}
 
       <div className="px-4 pb-4">
         <GroupQualificationPicker

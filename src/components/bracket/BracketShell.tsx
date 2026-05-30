@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { GroupStageTab } from './GroupStageTab'
 import { KnockoutTab } from './KnockoutTab'
 import { RoundStatusBadge } from '@/components/ui/Badge'
 import { usePredictions } from '@/hooks/usePredictions'
 import { useQualifications } from '@/hooks/useQualifications'
+import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { MatchWithTeams, Prediction, Round, RoundName, Team, Group, QualState } from '@/types/app'
 
@@ -34,6 +35,24 @@ export function BracketShell({
 
   const { predictions, updatePrediction, saving, errors } = usePredictions(entryId, initialPredictions)
   const { quals, updateQualification, saving: qualSaving } = useQualifications(entryId, initialQuals)
+
+  // Count groups with tied positions that haven't been manually resolved yet
+  const unresolvedGroupCount = useMemo(() => {
+    const groupStageMatches = matchesByRound['group_stage'] ?? []
+    return groups.reduce((count, group) => {
+      const gMatches = groupStageMatches.filter((m) => m.group?.name === group.name)
+      const { ambiguities, predictedMatchCount } = computePredictedStandings(
+        group.teams, gMatches, predictions
+      )
+      if (predictedMatchCount === 0) return count
+      const pick = quals[group.id]
+      const unresolved =
+        (ambiguities.first && !pick?.predicted1st) ||
+        ((ambiguities.first || ambiguities.second) && !pick?.predicted2nd) ||
+        ((ambiguities.second || ambiguities.third) && !pick?.predicted3rd)
+      return count + (unresolved ? 1 : 0)
+    }, 0)
+  }, [groups, matchesByRound, predictions, quals])
 
   const activeRoundData = roundMap[activeRound]
   const isEditable = activeRoundData?.status === 'accepting_predictions'
@@ -68,6 +87,11 @@ export function BracketShell({
               >
                 {ROUND_LABELS[roundName]}
                 <RoundStatusBadge status={round.status} />
+                {roundName !== 'group_stage' && unresolvedGroupCount > 0 && (
+                  <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                    {unresolvedGroupCount} tie{unresolvedGroupCount !== 1 ? 's' : ''}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -103,6 +127,7 @@ export function BracketShell({
           saving={saving}
           errors={errors}
           qualSaving={qualSaving}
+          unresolvedCount={unresolvedGroupCount}
         />
       ) : (
         <KnockoutTab
