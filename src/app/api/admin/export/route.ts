@@ -57,7 +57,7 @@ function single<T>(val: T | T[] | null): T | null {
 
 export async function GET() {
   const email = await getSessionEmail()
-  if (!isAdmin(email)) {
+  if (!await isAdmin(email)) {
     return new Response('Unauthorized', { status: 401 })
   }
 

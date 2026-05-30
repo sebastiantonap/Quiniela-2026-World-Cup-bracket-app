@@ -5,17 +5,20 @@ import { RoundManager } from './RoundManager'
 import { ResultsEntry } from './ResultsEntry'
 import { KnockoutSlotFiller } from './KnockoutSlotFiller'
 import { GroupStandings } from './GroupStandings'
+import { UserManager } from './UserManager'
 import type { MatchWithTeams, Round, Team } from '@/types/app'
+import type { AdminUserRow } from '@/actions/admin/users'
 
-type AdminTab = 'rounds' | 'results' | 'slots' | 'standings'
+type AdminTab = 'rounds' | 'results' | 'slots' | 'standings' | 'users'
 
 interface AdminPanelProps {
   rounds: Round[]
   matches: MatchWithTeams[]
   teams: Team[]
+  users: AdminUserRow[]
 }
 
-export function AdminPanel({ rounds, matches, teams }: AdminPanelProps) {
+export function AdminPanel({ rounds, matches, teams, users }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>('rounds')
 
   const tabs: { id: AdminTab; label: string }[] = [
@@ -23,6 +26,7 @@ export function AdminPanel({ rounds, matches, teams }: AdminPanelProps) {
     { id: 'results', label: 'Enter Results' },
     { id: 'slots', label: 'Knockout Slots' },
     { id: 'standings', label: 'Group Standings' },
+    { id: 'users', label: 'Users' },
   ]
 
   return (
@@ -55,6 +59,7 @@ export function AdminPanel({ rounds, matches, teams }: AdminPanelProps) {
       {activeTab === 'results' && <ResultsEntry rounds={rounds} matches={matches} teams={teams} />}
       {activeTab === 'slots' && <KnockoutSlotFiller rounds={rounds} matches={matches} teams={teams} />}
       {activeTab === 'standings' && <GroupStandings matches={matches} teams={teams} />}
+      {activeTab === 'users' && <UserManager users={users} />}
     </div>
   )
 }

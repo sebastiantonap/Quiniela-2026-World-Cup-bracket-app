@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { getSessionEmail } from '@/lib/session'
+import { isAdmin } from '@/lib/auth/isAdmin'
 import { signOut } from '@/actions/auth'
 
 export async function Nav() {
   const email = await getSessionEmail()
+  const adminUser = await isAdmin(email)
 
   return (
     <nav className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
@@ -26,6 +28,14 @@ export async function Nav() {
           >
             My Entries
           </Link>
+          {adminUser && (
+            <Link
+              href="/admin"
+              className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-sm font-medium text-amber-400 transition hover:bg-amber-500/30 hover:text-amber-300"
+            >
+              Admin
+            </Link>
+          )}
           {email && (
             <form action={signOut}>
               <button

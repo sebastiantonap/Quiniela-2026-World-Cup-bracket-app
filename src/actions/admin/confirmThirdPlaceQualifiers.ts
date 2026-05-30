@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function confirmThirdPlaceQualifiers(teamIds: string[]): Promise<{ error?: string }> {
   const email = await getSessionEmail()
-  if (!isAdmin(email)) return { error: 'Unauthorized' }
+  if (!await isAdmin(email)) return { error: 'Unauthorized' }
   if (teamIds.length !== 8) return { error: 'Must select exactly 8 teams' }
 
   const supabase = getSupabaseAdminClient()

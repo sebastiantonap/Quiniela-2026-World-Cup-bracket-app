@@ -8,7 +8,7 @@ import type { RoundStatus } from '@/types/app'
 
 async function assertAdmin() {
   const email = await getSessionEmail()
-  if (!isAdmin(email)) throw new Error('Unauthorized')
+  if (!await isAdmin(email)) throw new Error('Unauthorized')
 }
 
 export async function setRoundStatus(
