@@ -29,6 +29,7 @@ export interface Database {
           flag_emoji: string | null
           group_id: string | null
           best_third_qualified: boolean
+          fd_team_id: number | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['teams']['Row'], 'created_at'>
@@ -64,6 +65,12 @@ export interface Database {
           away_penalties: number | null
           winner_team_id: string | null
           result_confirmed: boolean
+          fd_match_id: number | null
+          is_manual_override: boolean
+          api_home_score: number | null
+          api_away_score: number | null
+          api_status: string | null
+          last_synced_at: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['matches']['Row'], 'created_at'>
@@ -130,6 +137,35 @@ export interface Database {
         Row: { token: string; email: string; created_at: string }
         Insert: Omit<Database['public']['Tables']['user_sessions']['Row'], 'created_at'>
         Update: Partial<Database['public']['Tables']['user_sessions']['Insert']>
+      }
+      change_log: {
+        Row: {
+          id: number
+          entity_type: string
+          entity_id: string
+          field: string
+          old_value: string | null
+          new_value: string | null
+          source: string
+          changed_by: string | null
+          changed_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['change_log']['Row'], 'id' | 'changed_at'>
+        Update: Partial<Database['public']['Tables']['change_log']['Insert']>
+      }
+      sync_runs: {
+        Row: {
+          id: number
+          started_at: string
+          finished_at: string | null
+          status: string | null
+          matches_seen: number | null
+          matches_changed: number | null
+          drift_count: number | null
+          error_text: string | null
+        }
+        Insert: Omit<Database['public']['Tables']['sync_runs']['Row'], 'id' | 'started_at'>
+        Update: Partial<Database['public']['Tables']['sync_runs']['Insert']>
       }
       entry_best_third_selections: {
         Row: {

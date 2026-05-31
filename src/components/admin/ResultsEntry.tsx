@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveMatchResult, clearMatchResult } from '@/actions/admin/results'
+import { saveMatchResult, clearMatchResult, revertToApi } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
 import { buildSlotContext, resolveSlotTeamId } from '@/lib/standings/knockoutSlots'
 import { ROUND_ORDER } from '@/lib/constants/rounds'
@@ -71,6 +71,17 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
     const result = await clearMatchResult(match.id)
     setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.results.resultCleared') }))
     setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: false }))
+    router.refresh()
+  }
+
+  async function handleRevert(match: MatchWithTeams) {
+    const confirmed = window.confirm(t('admin.results.revertConfirm'))
+    if (!confirmed) return
+
+    setLoading((prev) => ({ ...prev, [`revert-${match.id}`]: true }))
+    const result = await revertToApi(match.id)
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.results.reverted') }))
+    setLoading((prev) => ({ ...prev, [`revert-${match.id}`]: false }))
     router.refresh()
   }
 
@@ -177,6 +188,39 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                       {t('admin.results.pensSuffix', { home: match.home_penalties, away: match.away_penalties })}
                     </span>
                   )}
+                </span>
+              )}
+
+              {/* Override + drift badges */}
+              {match.is_manual_override && (
+                <span className="rounded-full bg-amber-900/40 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                  {t('admin.results.overrideBadge')}
+                </span>
+              )}
+              {match.is_manual_override &&
+                match.api_home_score !== null && match.api_away_score !== null &&
+                (match.api_home_score !== match.home_score || match.api_away_score !== match.away_score) && (
+                <span className="flex items-center gap-1">
+                  <span className="rounded-full bg-red-900/40 px-2 py-0.5 text-[10px] font-medium text-red-400">
+                    {t('admin.results.driftBadge')}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {t('admin.results.apiScore', { home: match.api_home_score, away: match.api_away_score })}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={loading[`revert-${match.id}`]}
+                    onClick={() => handleRevert(match)}
+                    className="text-blue-400 hover:text-blue-300 text-xs"
+                  >
+                    {t('admin.results.revertToApi')}
+                  </Button>
+                </span>
+              )}
+              {!match.is_manual_override && match.api_home_score !== null && match.api_away_score !== null && (
+                <span className="text-[10px] text-slate-500">
+                  {t('admin.results.apiScore', { home: match.api_home_score, away: match.api_away_score })}
                 </span>
               )}
 
