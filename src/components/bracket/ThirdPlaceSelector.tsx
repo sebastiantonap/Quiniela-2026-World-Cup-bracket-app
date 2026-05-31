@@ -10,6 +10,8 @@ import {
 } from '@/lib/standings/thirdPlaceRanking'
 import { upsertThirdPlaceSelections } from '@/actions/thirdPlaceSelections'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Prediction, Team, Group } from '@/types/app'
 
 interface ThirdPlaceSelectorProps {
@@ -31,6 +33,7 @@ export function ThirdPlaceSelector({
   initialSelections,
   onClose,
 }: ThirdPlaceSelectorProps) {
+  const t = useT()
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
 
   // Compute predicted 3rd-place teams for each group
@@ -118,9 +121,9 @@ export function ThirdPlaceSelector({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <h2 className="text-base font-bold text-slate-100">Best 8 Third-Place Teams</h2>
+            <h2 className="text-base font-bold text-slate-100">{t('best8.title')}</h2>
             <p className="mt-0.5 text-xs text-slate-400">
-              {predictedCount}/12 groups predicted · select the 8 that advance to Round of 32
+              {t('third.subtitle', { count: predictedCount, round: roundLabel(t, 'round_of_32') })}
             </p>
           </div>
           <button
@@ -133,25 +136,25 @@ export function ThirdPlaceSelector({
 
         {/* Info note */}
         <div className="border-b border-slate-700/60 bg-slate-800/40 px-5 py-2.5 text-xs text-slate-400">
-          Ranked by Pts → GD → GF. For ties at the 8th/9th boundary, pick manually.
+          {t('third.rankedNote')}
         </div>
 
         {/* Amber warning when < 12 groups predicted */}
         {predictedCount < 12 && predictedCount > 0 && (
           <div className="border-b border-amber-700/30 bg-amber-900/10 px-5 py-2 text-xs text-amber-300">
-            {12 - predictedCount} group{12 - predictedCount !== 1 ? 's' : ''} still without predictions — rankings will shift as you fill them in.
+            {t(12 - predictedCount === 1 ? 'third.groupsRemainingOne' : 'third.groupsRemainingOther', { count: 12 - predictedCount })}
           </div>
         )}
 
         {predictedCount === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-slate-500">
-            Enter scores for at least one group to see third-place rankings.
+            {t('third.enterScores')}
           </div>
         ) : (
           <>
             {hasBoundaryTie && (
               <div className="border-b border-amber-700/30 bg-amber-900/10 px-5 py-2 text-xs text-amber-300">
-                Tie at the rank-8/9 boundary — check which teams you think advance.
+                {t('third.boundaryTie')}
               </div>
             )}
 
@@ -160,12 +163,12 @@ export function ThirdPlaceSelector({
                 <tr className="border-b border-slate-700 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   <th className="w-8 px-3 py-2 text-center">#</th>
                   <th className="w-8 px-2 py-2"></th>
-                  <th className="px-3 py-2 text-left">Team</th>
-                  <th className="px-2 py-2 text-center">Grp</th>
-                  <th className="px-2 py-2 text-center">GF</th>
-                  <th className="px-2 py-2 text-center">GA</th>
-                  <th className="px-2 py-2 text-center">GD</th>
-                  <th className="px-2 py-2 text-center">Pts</th>
+                  <th className="px-3 py-2 text-left">{t('common.team')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.group')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.gf')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.ga')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.gd')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.pts')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
@@ -229,28 +232,28 @@ export function ThirdPlaceSelector({
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-700 px-5 py-3 gap-3">
           <span className="text-xs text-slate-500">
-            {selectedCount}/8 selected
+            {t('third.selectedCount', { count: selectedCount })}
             {selectedCount !== 8 && isEditable && (
-              <span className="ml-1 text-amber-400">— select exactly 8 to confirm</span>
+              <span className="ml-1 text-amber-400">{t('third.selectExactly')}</span>
             )}
           </span>
           <div className="flex items-center gap-3">
             {saveError && <span className="text-xs text-red-400">{saveError}</span>}
-            {saved && <span className="text-xs text-green-400">Saved</span>}
+            {saved && <span className="text-xs text-green-400">{t('common.saved')}</span>}
             {isEditable && (
               <button
                 onClick={handleConfirm}
                 disabled={!canConfirm}
                 className="rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isPending ? 'Saving…' : 'Confirm'}
+                {isPending ? t('common.savingCap') : t('common.confirm')}
               </button>
             )}
             <button
               onClick={onClose}
               className="rounded-lg border border-slate-600 px-4 py-1.5 text-sm text-slate-300 transition hover:bg-slate-700"
             >
-              Close
+              {t('common.close')}
             </button>
           </div>
         </div>

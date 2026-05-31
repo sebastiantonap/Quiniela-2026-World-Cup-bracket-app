@@ -4,6 +4,7 @@ import { useMemo, useEffect, useRef } from 'react'
 import { MatchRow } from './MatchRow'
 import { GroupQualificationPicker } from './GroupQualificationPicker'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { MatchWithTeams, Prediction, Team, QualPick } from '@/types/app'
 import type { StandingAmbiguities } from '@/lib/standings/predictedStandings'
 
@@ -59,6 +60,7 @@ export function GroupCard({
   errors,
   qualSaving,
 }: GroupCardProps) {
+  const t = useT()
   const { standings, ambiguities, predictedMatchCount, totalMatchCount } = useMemo(
     () => computePredictedStandings(teams, matches, predictions),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -128,8 +130,8 @@ export function GroupCard({
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-800">
       <div className="border-b border-slate-700 px-4 py-3 flex items-center justify-between">
-        <h3 className="font-bold text-slate-100">Group {letter}</h3>
-        <span className="text-xs text-slate-500">{predictedMatchCount}/{totalMatchCount} matches</span>
+        <h3 className="font-bold text-slate-100">{t('group.name', { letter })}</h3>
+        <span className="text-xs text-slate-500">{predictedMatchCount}/{totalMatchCount} {t('group.matches')}</span>
       </div>
 
       {/* Match score inputs */}
@@ -151,18 +153,18 @@ export function GroupCard({
       <div className="mx-4 mb-3 rounded-xl border border-slate-700 overflow-hidden">
         <div className="bg-slate-700/40 px-3 py-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            Simulated Standings
+            {t('group.simulatedStandings')}
           </span>
         </div>
         <table className="w-full text-xs">
           <thead>
             <tr className="border-t border-slate-700/60 text-[10px] text-slate-500">
               <th className="pl-3 pr-1 py-1 text-left w-5">#</th>
-              <th className="px-1 py-1 text-left">Team</th>
-              <th className="px-2 py-1 text-center w-9">Pts</th>
-              <th className="px-2 py-1 text-center w-9">GF</th>
-              <th className="px-2 py-1 text-center w-9">GA</th>
-              <th className="pr-3 py-1 text-center w-10">GD</th>
+              <th className="px-1 py-1 text-left">{t('common.team')}</th>
+              <th className="px-2 py-1 text-center w-9">{t('abbr.pts')}</th>
+              <th className="px-2 py-1 text-center w-9">{t('abbr.gf')}</th>
+              <th className="px-2 py-1 text-center w-9">{t('abbr.ga')}</th>
+              <th className="pr-3 py-1 text-center w-10">{t('abbr.gd')}</th>
             </tr>
           </thead>
           <tbody>
@@ -199,14 +201,14 @@ export function GroupCard({
         </table>
         {predictedMatchCount > 0 && hasAnyAmbiguity && (
           <p className="px-3 py-2 text-[10px] text-amber-400 bg-amber-900/10 border-t border-amber-800/30">
-            Tied positions marked with ? — pick those manually below.
+            {t('group.tiedMarkerNote')}
           </p>
         )}
       </div>
 
       {hasUnresolved && (
         <div className="mx-4 mb-3 rounded-lg border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-xs text-amber-300">
-          Tied positions need manual resolution — pick the highlighted slots below.
+          {t('group.unresolvedNote')}
         </div>
       )}
 

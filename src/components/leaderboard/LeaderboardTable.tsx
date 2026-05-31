@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
+import { ROUND_ORDER } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
 import type { EnrichedLeaderboardRow } from '@/types/app'
 
 function maskEmail(email: string): string {
@@ -30,6 +32,7 @@ function RankDelta({ delta, hasSnapshot }: { delta: number; hasSnapshot: boolean
 }
 
 function BreakdownTooltip({ row }: { row: EnrichedLeaderboardRow }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const hasBreakdown = Object.keys(row.round_breakdown).length > 0
 
@@ -42,7 +45,7 @@ function BreakdownTooltip({ row }: { row: EnrichedLeaderboardRow }) {
       <button
         onClick={() => setOpen((o) => !o)}
         className="font-bold tabular-nums text-slate-100 underline decoration-dotted underline-offset-2 hover:text-amber-300 transition"
-        title="Click for round breakdown"
+        title={t('leaderboard.breakdownTooltip')}
       >
         {row.total_points}
       </button>
@@ -51,11 +54,11 @@ function BreakdownTooltip({ row }: { row: EnrichedLeaderboardRow }) {
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-slate-600 bg-slate-900 p-3 shadow-xl text-xs">
             <p className="mb-2 font-semibold text-slate-300 uppercase tracking-wide text-[10px]">
-              Points by round
+              {t('leaderboard.pointsByRound')}
             </p>
             {ROUND_ORDER.filter((r) => row.round_breakdown[r] !== undefined).map((r) => (
               <div key={r} className="flex justify-between py-0.5 text-slate-300">
-                <span>{ROUND_LABELS[r]}</span>
+                <span>{roundLabel(t, r)}</span>
                 <span className="font-semibold text-slate-100">{row.round_breakdown[r]}</span>
               </div>
             ))}
@@ -74,6 +77,7 @@ interface LeaderboardTableProps {
 }
 
 export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEmail }: LeaderboardTableProps) {
+  const t = useT()
   const anyHasSnapshot = rows.some((r) => r.rank_snapshot !== null)
 
   return (
@@ -82,12 +86,12 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-700 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="w-16 px-4 py-3">Rank</th>
-              <th className="px-4 py-3">Bracket</th>
-              <th className="hidden px-4 py-3 sm:table-cell">User</th>
-              <th className="hidden px-4 py-3 text-center lg:table-cell">Correct %</th>
-              <th className="hidden px-4 py-3 text-right lg:table-cell">Max</th>
-              <th className="px-4 py-3 text-right">Points</th>
+              <th className="w-16 px-4 py-3">{t('leaderboard.col.rank')}</th>
+              <th className="px-4 py-3">{t('leaderboard.col.bracket')}</th>
+              <th className="hidden px-4 py-3 sm:table-cell">{t('leaderboard.col.user')}</th>
+              <th className="hidden px-4 py-3 text-center lg:table-cell">{t('leaderboard.col.correctPct')}</th>
+              <th className="hidden px-4 py-3 text-right lg:table-cell">{t('leaderboard.col.max')}</th>
+              <th className="px-4 py-3 text-right">{t('leaderboard.col.points')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/60">
@@ -126,7 +130,7 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
                     </Link>
                     {isMe && (
                       <span className="ml-2 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
-                        you
+                        {t('leaderboard.you')}
                       </span>
                     )}
                   </td>
@@ -165,7 +169,7 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
 
       {/* Legend */}
       <p className="mt-2 text-center text-xs text-slate-600">
-        Click a points total to see round-by-round breakdown · Click a bracket name to view picks
+        {t('leaderboard.legend')}
       </p>
 
       {totalPages > 1 && (
@@ -175,18 +179,18 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
               href={`/leaderboard?page=${currentPage - 1}`}
               className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-700"
             >
-              ← Previous
+              {t('leaderboard.previous')}
             </Link>
           )}
           <span className="text-sm text-slate-500">
-            Page {currentPage} of {totalPages}
+            {t('leaderboard.pageOf', { current: currentPage, total: totalPages })}
           </span>
           {currentPage < totalPages && (
             <Link
               href={`/leaderboard?page=${currentPage + 1}`}
               className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-700"
             >
-              Next →
+              {t('leaderboard.next')}
             </Link>
           )}
         </div>

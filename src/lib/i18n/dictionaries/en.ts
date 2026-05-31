@@ -1,0 +1,301 @@
+/**
+ * Canonical translation dictionary. English is the source of truth: its keys define
+ * the TranslationKey type, and every other locale must provide the same keys.
+ * Use {param} placeholders for interpolation (see createTranslator).
+ */
+export const en = {
+  // ---- common ----
+  'common.pts': 'pts',
+  'common.points': 'points',
+  'common.team': 'Team',
+  'common.cancel': 'Cancel',
+  'common.create': 'Create',
+  'common.confirm': 'Confirm',
+  'common.close': 'Close',
+  'common.save': 'Save',
+  'common.add': 'Add',
+  'common.saving': 'saving…',
+  'common.savingCap': 'Saving…',
+  'common.saved': 'Saved',
+  'common.myBrackets': 'My Brackets',
+  'common.backToBrackets': '← Back to my brackets',
+  'common.tbd': 'TBD',
+  'common.vs': 'vs',
+
+  // ---- column abbreviations ----
+  'abbr.played': 'P',
+  'abbr.won': 'W',
+  'abbr.drawn': 'D',
+  'abbr.lost': 'L',
+  'abbr.gf': 'GF',
+  'abbr.ga': 'GA',
+  'abbr.gd': 'GD',
+  'abbr.pts': 'Pts',
+  'abbr.group': 'Grp',
+
+  // ---- ordinals ----
+  'ord.first': '1st',
+  'ord.second': '2nd',
+  'ord.third': '3rd',
+
+  // ---- round names ----
+  'round.group_stage': 'Group Stage',
+  'round.round_of_32': 'Round of 32',
+  'round.round_of_16': 'Round of 16',
+  'round.quarterfinals': 'Quarterfinals',
+  'round.semifinals': 'Semifinals',
+  'round.third_place': '3rd Place',
+  'round.final': 'Final',
+
+  // ---- round status (badge short labels) ----
+  'badge.pending': 'Pending',
+  'badge.open': 'Open',
+  'badge.locked': 'Locked',
+  'badge.done': 'Done',
+
+  // ---- round status (full labels, used in admin messages) ----
+  'status.pending': 'pending',
+  'status.accepting_predictions': 'accepting predictions',
+  'status.locked': 'locked',
+  'status.completed': 'completed',
+
+  // ---- nav ----
+  'nav.leaderboard': 'Leaderboard',
+  'nav.rules': 'Rules',
+  'nav.myEntries': 'My Entries',
+  'nav.admin': 'Admin',
+  'nav.signOut': 'Sign out',
+
+  // ---- landing ----
+  'landing.subtitle': 'Predict scores for every 2026 FIFA World Cup match and climb the leaderboard.',
+  'landing.feature.fillBracket': 'Fill your bracket',
+  'landing.feature.earnPoints': 'Earn points',
+  'landing.feature.beatTable': 'Beat the table',
+  'landing.enterToPlay': 'Enter to play',
+  'landing.enterDesc': 'Just your email — no password, no confirmation needed.',
+  'landing.maxBrackets': 'Max 2 brackets per email address.',
+
+  // ---- auth ----
+  'auth.emailLabel': 'Email address',
+  'auth.emailPlaceholder': 'you@example.com',
+  'auth.enter': 'Enter →',
+
+  // ---- dashboard ----
+  'dashboard.noBracketsTitle': 'No brackets yet',
+  'dashboard.noBracketsDesc': 'Create your first bracket to start predicting matches.',
+  'dashboard.maxReached': 'Maximum 2 brackets per account reached.',
+  'dashboard.viewLeaderboard': 'View leaderboard →',
+
+  // ---- entry card ----
+  'entryCard.created': 'Created {date}',
+  'entryCard.viewBracket': 'View bracket →',
+
+  // ---- create entry ----
+  'createEntry.new': '+ New bracket',
+  'createEntry.modalTitle': 'Create new bracket',
+  'createEntry.nameLabel': 'Bracket name',
+  'createEntry.namePlaceholder': 'e.g. My World Cup Picks',
+
+  // ---- entry page ----
+  'entry.viewing': 'Viewing',
+  'entry.readOnly': 'read-only',
+
+  // ---- leaderboard ----
+  'leaderboard.title': 'Leaderboard',
+  'leaderboard.competingOne': '{count} bracket competing',
+  'leaderboard.competingOther': '{count} brackets competing',
+  'leaderboard.prizeDistribution': 'Prize Distribution',
+  'leaderboard.firstPlace': '1st place',
+  'leaderboard.secondPlace': '2nd place',
+  'leaderboard.thirdPlace': '3rd place',
+  'leaderboard.tiesSplit': 'Ties split pro-rata',
+  'leaderboard.noEntries': 'No entries yet. Be the first!',
+  'leaderboard.col.rank': 'Rank',
+  'leaderboard.col.bracket': 'Bracket',
+  'leaderboard.col.user': 'User',
+  'leaderboard.col.correctPct': 'Correct %',
+  'leaderboard.col.max': 'Max',
+  'leaderboard.col.points': 'Points',
+  'leaderboard.you': 'you',
+  'leaderboard.pointsByRound': 'Points by round',
+  'leaderboard.breakdownTooltip': 'Click for round breakdown',
+  'leaderboard.legend': 'Click a points total to see round-by-round breakdown · Click a bracket name to view picks',
+  'leaderboard.previous': '← Previous',
+  'leaderboard.next': 'Next →',
+  'leaderboard.pageOf': 'Page {current} of {total}',
+
+  // ---- rules ----
+  'rules.title': 'Rules & Scoring',
+  'rules.subtitle': 'Exactly how points are awarded and how team selection works — your reference whenever a score looks surprising.',
+  'rules.overview.heading': 'How scoring works',
+  'rules.overview.body': 'Your total is the sum of four things: your match-score predictions (every game, group stage through the final), your group qualification picks (who finishes 1st/2nd/3rd in each group), your best-8 third-place picks, and the bonuses for getting an exact scoreline. Knockout matches have an extra twist — eligibility gating — explained below.',
+  'rules.group.heading': 'Group-stage match scoring',
+  'rules.group.body': 'For each group-stage game you predict the final score. You earn points for getting the outcome right (home win, draw, or away win), with a bonus for nailing the exact scoreline.',
+  'rules.group.correctOutcome': 'Correct outcome',
+  'rules.group.exactScore': 'Exact score',
+  'rules.group.maxPerGame': 'Max per game',
+  'rules.knockout.heading': 'Knockout match scoring',
+  'rules.knockout.body': 'Knockout points climb each round. You earn the winner value for picking the team that advances, plus the exact-score bonus on top.',
+  'rules.knockout.col.round': 'Round',
+  'rules.knockout.col.correctWinner': 'Correct winner',
+  'rules.knockout.col.exactScore': '+ Exact score',
+  'rules.knockout.col.max': 'Max',
+  'rules.qual.heading': 'Group qualification picks',
+  'rules.qual.body': 'For every group you also pick who finishes 1st, 2nd, and 3rd. You score the full value for an exact finish, and a consolation 1 point if your team still qualified somewhere close.',
+  'rules.qual.firstLabel': 'Your 1st-place pick:',
+  'rules.qual.firstDesc': '4 pts if it finishes 1st · else 1 pt if it finishes in the top 2 or 3rd.',
+  'rules.qual.secondLabel': 'Your 2nd-place pick:',
+  'rules.qual.secondDesc': '3 pts if it finishes 2nd · else 1 pt if it finishes in the top 2 or 3rd.',
+  'rules.qual.thirdLabel': 'Your 3rd-place pick:',
+  'rules.qual.thirdDesc': '2 pts if it finishes 3rd · else 1 pt if it finishes in the top 2.',
+  'rules.best.heading': 'Best 8 third-place teams',
+  'rules.best.body': 'Twelve teams finish 3rd in their group, but only 8 advance to the Round of 32. You pick which 8 you think make it. Each team you pick that actually advances is worth 1 point. You must select exactly 8.',
+  'rules.elig.heading': 'Knockout eligibility — the important twist',
+  'rules.elig.body': 'In knockout rounds you only score a match if you correctly had its teams advancing that far. For each real-life matchup we look at the two teams actually playing and check how many of them you correctly advanced ("own"):',
+  'rules.elig.bothLabel': 'Both teams yours',
+  'rules.elig.bothDesc': '— full normal scoring: winner points plus the exact-score bonus.',
+  'rules.elig.oneLabel': 'One team yours',
+  'rules.elig.oneDesc': "— you're forced to have your one team win. You earn the round's winner points only if that team actually wins — no exact-score bonus, and your own scoreline pick is ignored.",
+  'rules.elig.neitherLabel': 'Neither team yours',
+  'rules.elig.neitherDesc': '— the match is void for you: 0 points possible.',
+  'rules.elig.owningTitle': 'Where "owning" a team comes from:',
+  'rules.elig.owningR32Label': 'Round of 32:',
+  'rules.elig.owningR32Desc': 'the teams you predicted 1st/2nd in their group, plus your best-8 third-place picks.',
+  'rules.elig.owningAfterLabel': 'Every round after:',
+  'rules.elig.owningAfterDesc': 'the teams you picked to win their match in the previous round.',
+  'rules.elig.exampleLabel': 'Example:',
+  'rules.elig.exampleBody': "A quarterfinal is Brazil vs. France. You correctly advanced Brazil from the Round of 16 but had France knocked out. That's a one-team-yours match: you bank the quarterfinal winner points only if Brazil actually wins — your predicted score doesn't matter.",
+  'rules.tiebreak.heading': 'Standings & tiebreakers',
+  'rules.tiebreak.intro': 'Group standings and the best-third ranking are ordered by:',
+  'rules.tiebreak.points': 'Points',
+  'rules.tiebreak.gd': 'Goal difference',
+  'rules.tiebreak.gf': 'Goals for',
+  'rules.tiebreak.body': "When teams are level on all three at a qualification boundary, the order can't be decided automatically — the admin resolves it using FIFA's further tiebreakers (head-to-head, fair play, drawing of lots). In the best-8 third-place picker, the clear top 8 lock automatically; only teams tied right at the 8th/9th boundary are left for you to choose between.",
+
+  // ---- bracket shell ----
+  'bracket.tieOne': '{count} tie',
+  'bracket.tieOther': '{count} ties',
+  'bracket.roundNotOpen': "This round hasn't opened yet. Check back soon.",
+  'bracket.roundLocked': 'Predictions are locked for this round. Results are being entered.',
+  'bracket.roundCompleted': 'This round is complete. Scores have been calculated.',
+  'bracket.groupOne': '{count} group',
+  'bracket.groupOther': '{count} groups',
+  'bracket.unresolvedSuffix': 'have tied positions that need manual resolution before your bracket is complete.',
+
+  // ---- best 8 trigger / group stage tab ----
+  'best8.title': 'Best 8 Third-Place Teams',
+  'best8.tieResolve': 'tie — resolve manually',
+  'best8.allConfirmed': '✓ 8/8 confirmed',
+  'best8.confirmed': '{count}/8 confirmed',
+
+  // ---- group card ----
+  'group.name': 'Group {letter}',
+  'group.matches': 'matches',
+  'group.simulatedStandings': 'Simulated Standings',
+  'group.tiedMarkerNote': 'Tied positions marked with ? — pick those manually below.',
+  'group.unresolvedNote': 'Tied positions need manual resolution — pick the highlighted slots below.',
+
+  // ---- group qualification picker ----
+  'picker.title': 'Group Finish Picks',
+  'picker.pickTeam': '— pick a team —',
+  'picker.tiedPickManually': '— tied, pick manually —',
+
+  // ---- knockout match card ----
+  'knockout.noMatches': 'No matches scheduled yet for this round.',
+  'knockout.fullScoring': 'Full scoring',
+  'knockout.forced': 'Forced: {name} advances · advance pts only',
+  'knockout.void': 'Void — no points possible',
+  'knockout.advances': '✓ advances',
+  'knockout.selectWinner': 'Select winner (radio) — required for points',
+  'knockout.winnerForced': 'Winner forced — you score only if {name} advances',
+  'knockout.teamsTbd': 'Teams TBD',
+  'knockout.pickWinnerTitle': 'Pick as winner',
+  'knockout.zeroPts': '0 pts',
+
+  // ---- third place selector ----
+  'third.subtitle': '{count}/12 groups predicted · select the 8 that advance to {round}',
+  'third.rankedNote': 'Ranked by Pts → GD → GF. For ties at the 8th/9th boundary, pick manually.',
+  'third.groupsRemainingOne': '{count} group still without predictions — rankings will shift as you fill them in.',
+  'third.groupsRemainingOther': '{count} groups still without predictions — rankings will shift as you fill them in.',
+  'third.enterScores': 'Enter scores for at least one group to see third-place rankings.',
+  'third.boundaryTie': 'Tie at the rank-8/9 boundary — check which teams you think advance.',
+  'third.selectedCount': '{count}/8 selected',
+  'third.selectExactly': '— select exactly 8 to confirm',
+
+  // ---- admin ----
+  'admin.title': 'Admin Panel',
+  'admin.subtitle': 'Manage rounds, enter results, recalculate scores.',
+  'admin.tab.rounds': 'Round Manager',
+  'admin.tab.results': 'Enter Results',
+  'admin.tab.slots': 'Knockout Slots',
+  'admin.tab.standings': 'Group Standings',
+  'admin.tab.users': 'Users',
+  'admin.exportXlsx': '↓ Export XLSX',
+
+  // ---- admin: rounds ----
+  'admin.rounds.col.round': 'Round',
+  'admin.rounds.col.status': 'Status',
+  'admin.rounds.col.actions': 'Actions',
+  'admin.rounds.active': '● active',
+  'admin.rounds.open': '🔓 Open',
+  'admin.rounds.lock': '🔒 Lock',
+  'admin.rounds.complete': '✓ Complete',
+  'admin.rounds.recalculate': '⟳ Recalculate',
+  'admin.rounds.calculating': 'Calculating…',
+  'admin.rounds.movedTo': 'Moved to "{status}"',
+  'admin.rounds.revertedTo': 'Reverted to "{status}"',
+  'admin.rounds.recalcDone': 'Scores recalculated!',
+  'admin.rounds.revertConfirm': 'Revert "{label}" from "{from}" back to "{to}"?',
+
+  // ---- admin: results ----
+  'admin.results.enterValidScores': 'Enter valid scores',
+  'admin.results.assignBothTeams': 'Assign both teams first (Knockout Slots tab)',
+  'admin.results.tiedEnterPens': 'Tied — enter penalty scores',
+  'admin.results.pensNotEqual': 'Penalty scores cannot be equal',
+  'admin.results.saved': 'Saved!',
+  'admin.results.resultCleared': 'Result cleared',
+  'admin.results.clearConfirm': 'Clear result for match {number}: {home} vs {away}?',
+  'admin.results.pens': 'pens',
+  'admin.results.pensSuffix': '({home}–{away} pens)',
+  'admin.results.winner': 'Winner:',
+  'admin.results.clear': '✕ clear',
+
+  // ---- admin: knockout slots ----
+  'admin.slots.canFillOne': '{count} match can be filled from presets (tie / undecided slots are skipped).',
+  'admin.slots.canFillOther': '{count} matches can be filled from presets (tie / undecided slots are skipped).',
+  'admin.slots.assignAll': 'Assign all presets',
+  'admin.slots.assigned': 'Assigned!',
+  'admin.slots.homeTeam': 'Home team…',
+  'admin.slots.awayTeam': 'Away team…',
+  'admin.slots.assign': 'Assign',
+  'admin.slots.tieVerify': '⚠ Tie — verify the correct finisher',
+  'admin.slots.prevNotDecided': 'Previous round not decided',
+
+  // ---- admin: standings ----
+  'admin.standings.legend': 'Green = qualify automatically | Amber = potential best 3rd place',
+  'admin.standings.bestThirdTitle': 'Best 3rd-Place Teams ({count}/12) — pick 8 to advance',
+  'admin.standings.selectedCount': '{count}/8 selected',
+  'admin.standings.boundaryTie': 'Tie detected at the rank-8/9 boundary — select which teams advance manually.',
+  'admin.standings.footerTie': 'Check/uncheck tied teams until exactly 8 are selected',
+  'admin.standings.footerNoTie': 'Ranked by Pts → GD → GF | Confirm to lock in the 8 qualifiers',
+  'admin.standings.confirmQualifiers': 'Confirm qualifiers',
+
+  // ---- admin: users ----
+  'admin.users.addAdmin': 'Add Admin',
+  'admin.users.addPlaceholder': 'user@example.com',
+  'admin.users.addedAsAdmin': '{email} added as admin',
+  'admin.users.removedFromAdmins': '{email} removed from admins',
+  'admin.users.col.user': 'User',
+  'admin.users.col.role': 'Role',
+  'admin.users.col.entries': 'Entries',
+  'admin.users.col.submission': 'Submission Status',
+  'admin.users.superAdmin': 'Super Admin',
+  'admin.users.admin': 'Admin',
+  'admin.users.user': 'User',
+  'admin.users.none': 'None',
+  'admin.users.removeAdmin': 'Remove admin',
+  'admin.users.filled': 'filled',
+}
+
+export type Dictionary = typeof en
+export type TranslationKey = keyof typeof en

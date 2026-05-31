@@ -6,7 +6,9 @@ import { setRoundStatus } from '@/actions/admin/rounds'
 import { triggerRecalculation } from '@/actions/admin/recalculate'
 import { RoundStatusBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { ROUND_LABELS } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
+import type { TranslationKey } from '@/lib/i18n/dictionaries/en'
 import type { Round, RoundStatus } from '@/types/app'
 
 interface RoundManagerProps {
@@ -26,9 +28,12 @@ const PREV_STATUS: Partial<Record<RoundStatus, RoundStatus>> = {
 }
 
 export function RoundManager({ rounds }: RoundManagerProps) {
+  const t = useT()
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
   const router = useRouter()
+
+  const statusLabel = (status: RoundStatus) => t(`status.${status}` as TranslationKey)
 
   async function handleTransition(round: Round) {
     const nextStatus = NEXT_STATUS[round.status]
@@ -39,7 +44,7 @@ export function RoundManager({ rounds }: RoundManagerProps) {
     if (result.error) {
       setFeedback((prev) => ({ ...prev, [round.id]: result.error! }))
     } else {
-      setFeedback((prev) => ({ ...prev, [round.id]: `Moved to "${nextStatus}"` }))
+      setFeedback((prev) => ({ ...prev, [round.id]: t('admin.rounds.movedTo', { status: statusLabel(nextStatus) }) }))
       router.refresh()
     }
     setLoading((prev) => ({ ...prev, [round.id]: false }))
@@ -48,9 +53,12 @@ export function RoundManager({ rounds }: RoundManagerProps) {
   async function handleRevert(round: Round) {
     const prevStatus = PREV_STATUS[round.status]
     if (!prevStatus) return
-    const label = ROUND_LABELS[round.name]
     const confirmed = window.confirm(
-      `Revert "${label}" from "${round.status.replace(/_/g, ' ')}" back to "${prevStatus.replace(/_/g, ' ')}"?`
+      t('admin.rounds.revertConfirm', {
+        label: roundLabel(t, round.name),
+        from: statusLabel(round.status),
+        to: statusLabel(prevStatus),
+      })
     )
     if (!confirmed) return
 
@@ -59,7 +67,7 @@ export function RoundManager({ rounds }: RoundManagerProps) {
     if (result.error) {
       setFeedback((prev) => ({ ...prev, [round.id]: result.error! }))
     } else {
-      setFeedback((prev) => ({ ...prev, [round.id]: `Reverted to "${prevStatus}"` }))
+      setFeedback((prev) => ({ ...prev, [round.id]: t('admin.rounds.revertedTo', { status: statusLabel(prevStatus) }) }))
       router.refresh()
     }
     setLoading((prev) => ({ ...prev, [`revert-${round.id}`]: false }))
@@ -70,7 +78,7 @@ export function RoundManager({ rounds }: RoundManagerProps) {
     const result = await triggerRecalculation(round.id)
     setFeedback((prev) => ({
       ...prev,
-      [`recalc-${round.id}`]: result.error ?? 'Scores recalculated!',
+      [`recalc-${round.id}`]: result.error ?? t('admin.rounds.recalcDone'),
     }))
     setLoading((prev) => ({ ...prev, [`recalc-${round.id}`]: false }))
     router.refresh()
@@ -81,9 +89,9 @@ export function RoundManager({ rounds }: RoundManagerProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-700 bg-slate-700/50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-            <th className="px-6 py-3">Round</th>
-            <th className="px-6 py-3">Status</th>
-            <th className="px-6 py-3">Actions</th>
+            <th className="px-6 py-3">{t('admin.rounds.col.round')}</th>
+            <th className="px-6 py-3">{t('admin.rounds.col.status')}</th>
+            <th className="px-6 py-3">{t('admin.rounds.col.actions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-700/60">
@@ -96,9 +104,9 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                 className={isOpen ? 'bg-green-900/10 border-l-2 border-l-green-500' : ''}
               >
                 <td className="px-6 py-4 font-medium text-slate-200">
-                  {ROUND_LABELS[round.name]}
+                  {roundLabel(t, round.name)}
                   {isOpen && (
-                    <span className="ml-2 text-xs font-normal text-green-400">● active</span>
+                    <span className="ml-2 text-xs font-normal text-green-400">{t('admin.rounds.active')}</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -109,17 +117,17 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                     {/* Primary forward action */}
                     {round.status === 'pending' && (
                       <Button size="sm" variant="primary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
-                        🔓 Open
+                        {t('admin.rounds.open')}
                       </Button>
                     )}
                     {round.status === 'accepting_predictions' && (
                       <Button size="sm" variant="secondary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
-                        🔒 Lock
+                        {t('admin.rounds.lock')}
                       </Button>
                     )}
                     {round.status === 'locked' && (
                       <Button size="sm" variant="secondary" loading={loading[round.id]} onClick={() => handleTransition(round)}>
-                        ✓ Complete
+                        {t('admin.rounds.complete')}
                       </Button>
                     )}
 
@@ -132,7 +140,7 @@ export function RoundManager({ rounds }: RoundManagerProps) {
                         onClick={() => handleRecalculate(round)}
                         disabled={round.calculating}
                       >
-                        {round.calculating ? 'Calculating…' : '⟳ Recalculate'}
+                        {round.calculating ? t('admin.rounds.calculating') : t('admin.rounds.recalculate')}
                       </Button>
                     )}
 

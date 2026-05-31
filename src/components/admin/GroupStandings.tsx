@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { computeGroupStandings, isStandingsTie } from '@/lib/standings/groupStandings'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
 import { confirmThirdPlaceQualifiers } from '@/actions/admin/confirmThirdPlaceQualifiers'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { MatchWithTeams, Team, TeamStanding } from '@/types/app'
 
 interface GroupStandingsProps {
@@ -16,6 +17,7 @@ type ThirdPlaceEntry = TeamStanding & { group: string }
 const isTied = isStandingsTie
 
 export function GroupStandings({ matches, teams }: GroupStandingsProps) {
+  const t = useT()
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
 
   const thirdPlaceTeams: ThirdPlaceEntry[] = []
@@ -111,20 +113,20 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
         return (
           <div key={letter} className="rounded-2xl bg-slate-800 border border-slate-700 overflow-hidden">
             <div className="border-b border-slate-700 bg-slate-700/50 px-4 py-2">
-              <h3 className="font-bold text-sm text-slate-200">Group {letter}</h3>
+              <h3 className="font-bold text-sm text-slate-200">{t('group.name', { letter })}</h3>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-slate-400 border-b border-slate-700">
-                  <th className="px-4 py-2 text-left">Team</th>
-                  <th className="px-2 py-2 text-center">P</th>
-                  <th className="px-2 py-2 text-center">W</th>
-                  <th className="px-2 py-2 text-center">D</th>
-                  <th className="px-2 py-2 text-center">L</th>
-                  <th className="px-2 py-2 text-center">GF</th>
-                  <th className="px-2 py-2 text-center">GA</th>
-                  <th className="px-2 py-2 text-center">GD</th>
-                  <th className="px-2 py-2 text-center font-bold">Pts</th>
+                  <th className="px-4 py-2 text-left">{t('common.team')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.played')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.won')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.drawn')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.lost')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.gf')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.ga')}</th>
+                  <th className="px-2 py-2 text-center">{t('abbr.gd')}</th>
+                  <th className="px-2 py-2 text-center font-bold">{t('abbr.pts')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/60">
@@ -154,7 +156,7 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
               </tbody>
             </table>
             <p className="px-4 py-2 text-xs text-slate-500">
-              Green = qualify automatically | Amber = potential best 3rd place
+              {t('admin.standings.legend')}
             </p>
           </div>
         )
@@ -164,16 +166,16 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
         <div className="rounded-2xl bg-slate-800 border border-amber-700/50 overflow-hidden">
           <div className="border-b border-amber-700/50 bg-amber-900/20 px-4 py-3 flex items-center justify-between">
             <h3 className="font-bold text-sm text-amber-300">
-              Best 3rd-Place Teams ({thirdPlaceTeams.length}/12) — pick 8 to advance
+              {t('admin.standings.bestThirdTitle', { count: thirdPlaceTeams.length })}
             </h3>
             <span className="text-xs text-slate-400">
-              {selectedIds.size}/8 selected
+              {t('admin.standings.selectedCount', { count: selectedIds.size })}
             </span>
           </div>
 
           {hasBoundaryTie && (
             <div className="border-b border-amber-700/30 bg-amber-900/10 px-4 py-2 text-xs text-amber-300">
-              Tie detected at the rank-8/9 boundary — select which teams advance manually.
+              {t('admin.standings.boundaryTie')}
             </div>
           )}
 
@@ -182,12 +184,12 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
               <tr className="text-xs text-slate-400 border-b border-slate-700">
                 <th className="px-3 py-2 text-center w-8">#</th>
                 <th className="px-3 py-2 w-8"></th>
-                <th className="px-4 py-2 text-left">Team</th>
-                <th className="px-2 py-2 text-center">Grp</th>
-                <th className="px-2 py-2 text-center">GF</th>
-                <th className="px-2 py-2 text-center">GA</th>
-                <th className="px-2 py-2 text-center">GD</th>
-                <th className="px-2 py-2 text-center font-bold">Pts</th>
+                <th className="px-4 py-2 text-left">{t('common.team')}</th>
+                <th className="px-2 py-2 text-center">{t('abbr.group')}</th>
+                <th className="px-2 py-2 text-center">{t('abbr.gf')}</th>
+                <th className="px-2 py-2 text-center">{t('abbr.ga')}</th>
+                <th className="px-2 py-2 text-center">{t('abbr.gd')}</th>
+                <th className="px-2 py-2 text-center font-bold">{t('abbr.pts')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/60">
@@ -245,22 +247,22 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
           <div className="border-t border-slate-700 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-xs text-slate-500">
               {hasBoundaryTie
-                ? 'Check/uncheck tied teams until exactly 8 are selected'
-                : 'Ranked by Pts → GD → GF | Confirm to lock in the 8 qualifiers'}
+                ? t('admin.standings.footerTie')
+                : t('admin.standings.footerNoTie')}
             </p>
             <div className="flex items-center gap-3">
               {confirmError && (
                 <span className="text-xs text-red-400">{confirmError}</span>
               )}
               {confirmSuccess && (
-                <span className="text-xs text-green-400">Saved</span>
+                <span className="text-xs text-green-400">{t('common.saved')}</span>
               )}
               <button
                 onClick={handleConfirm}
                 disabled={selectedIds.size !== 8 || isPending}
                 className="rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isPending ? 'Saving…' : 'Confirm qualifiers'}
+                {isPending ? t('common.savingCap') : t('admin.standings.confirmQualifiers')}
               </button>
             </div>
           </div>

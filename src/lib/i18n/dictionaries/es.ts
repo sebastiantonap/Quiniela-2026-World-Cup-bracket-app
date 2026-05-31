@@ -1,0 +1,296 @@
+import type { Dictionary } from './en'
+
+/** Spanish translations. Typed as Dictionary so missing/extra keys fail the build. */
+export const es: Dictionary = {
+  // ---- common ----
+  'common.pts': 'pts',
+  'common.points': 'puntos',
+  'common.team': 'Equipo',
+  'common.cancel': 'Cancelar',
+  'common.create': 'Crear',
+  'common.confirm': 'Confirmar',
+  'common.close': 'Cerrar',
+  'common.save': 'Guardar',
+  'common.add': 'Agregar',
+  'common.saving': 'guardando…',
+  'common.savingCap': 'Guardando…',
+  'common.saved': 'Guardado',
+  'common.myBrackets': 'Mis Cuadros',
+  'common.backToBrackets': '← Volver a mis cuadros',
+  'common.tbd': 'Por definir',
+  'common.vs': 'vs',
+
+  // ---- column abbreviations ----
+  'abbr.played': 'PJ',
+  'abbr.won': 'PG',
+  'abbr.drawn': 'PE',
+  'abbr.lost': 'PP',
+  'abbr.gf': 'GF',
+  'abbr.ga': 'GC',
+  'abbr.gd': 'DG',
+  'abbr.pts': 'Pts',
+  'abbr.group': 'Gpo',
+
+  // ---- ordinals ----
+  'ord.first': '1°',
+  'ord.second': '2°',
+  'ord.third': '3°',
+
+  // ---- round names ----
+  'round.group_stage': 'Fase de Grupos',
+  'round.round_of_32': 'Dieciseisavos',
+  'round.round_of_16': 'Octavos',
+  'round.quarterfinals': 'Cuartos de Final',
+  'round.semifinals': 'Semifinales',
+  'round.third_place': '3er Puesto',
+  'round.final': 'Final',
+
+  // ---- round status (badge short labels) ----
+  'badge.pending': 'Pendiente',
+  'badge.open': 'Abierta',
+  'badge.locked': 'Bloqueada',
+  'badge.done': 'Lista',
+
+  // ---- round status (full labels, used in admin messages) ----
+  'status.pending': 'pendiente',
+  'status.accepting_predictions': 'aceptando pronósticos',
+  'status.locked': 'bloqueada',
+  'status.completed': 'completada',
+
+  // ---- nav ----
+  'nav.leaderboard': 'Clasificación',
+  'nav.rules': 'Reglas',
+  'nav.myEntries': 'Mis Cuadros',
+  'nav.admin': 'Admin',
+  'nav.signOut': 'Cerrar sesión',
+
+  // ---- landing ----
+  'landing.subtitle': 'Pronostica los marcadores de cada partido del Mundial 2026 y sube en la clasificación.',
+  'landing.feature.fillBracket': 'Llena tu cuadro',
+  'landing.feature.earnPoints': 'Gana puntos',
+  'landing.feature.beatTable': 'Domina la tabla',
+  'landing.enterToPlay': 'Entra para jugar',
+  'landing.enterDesc': 'Solo tu correo — sin contraseña ni confirmación.',
+  'landing.maxBrackets': 'Máximo 2 cuadros por correo electrónico.',
+
+  // ---- auth ----
+  'auth.emailLabel': 'Correo electrónico',
+  'auth.emailPlaceholder': 'tu@ejemplo.com',
+  'auth.enter': 'Entrar →',
+
+  // ---- dashboard ----
+  'dashboard.noBracketsTitle': 'Aún no hay cuadros',
+  'dashboard.noBracketsDesc': 'Crea tu primer cuadro para empezar a pronosticar partidos.',
+  'dashboard.maxReached': 'Has alcanzado el máximo de 2 cuadros por cuenta.',
+  'dashboard.viewLeaderboard': 'Ver clasificación →',
+
+  // ---- entry card ----
+  'entryCard.created': 'Creado el {date}',
+  'entryCard.viewBracket': 'Ver cuadro →',
+
+  // ---- create entry ----
+  'createEntry.new': '+ Nuevo cuadro',
+  'createEntry.modalTitle': 'Crear nuevo cuadro',
+  'createEntry.nameLabel': 'Nombre del cuadro',
+  'createEntry.namePlaceholder': 'p. ej. Mis Pronósticos del Mundial',
+
+  // ---- entry page ----
+  'entry.viewing': 'Viendo',
+  'entry.readOnly': 'solo lectura',
+
+  // ---- leaderboard ----
+  'leaderboard.title': 'Clasificación',
+  'leaderboard.competingOne': '{count} cuadro compitiendo',
+  'leaderboard.competingOther': '{count} cuadros compitiendo',
+  'leaderboard.prizeDistribution': 'Distribución de Premios',
+  'leaderboard.firstPlace': '1er lugar',
+  'leaderboard.secondPlace': '2do lugar',
+  'leaderboard.thirdPlace': '3er lugar',
+  'leaderboard.tiesSplit': 'Los empates se reparten proporcionalmente',
+  'leaderboard.noEntries': '¡Aún no hay cuadros. Sé el primero!',
+  'leaderboard.col.rank': 'Puesto',
+  'leaderboard.col.bracket': 'Cuadro',
+  'leaderboard.col.user': 'Usuario',
+  'leaderboard.col.correctPct': 'Acierto %',
+  'leaderboard.col.max': 'Máx',
+  'leaderboard.col.points': 'Puntos',
+  'leaderboard.you': 'tú',
+  'leaderboard.pointsByRound': 'Puntos por ronda',
+  'leaderboard.breakdownTooltip': 'Clic para ver el desglose por ronda',
+  'leaderboard.legend': 'Haz clic en un total de puntos para ver el desglose por ronda · Haz clic en el nombre de un cuadro para ver los pronósticos',
+  'leaderboard.previous': '← Anterior',
+  'leaderboard.next': 'Siguiente →',
+  'leaderboard.pageOf': 'Página {current} de {total}',
+
+  // ---- rules ----
+  'rules.title': 'Reglas y Puntuación',
+  'rules.subtitle': 'Exactamente cómo se otorgan los puntos y cómo funciona la selección de equipos — tu referencia siempre que un puntaje te sorprenda.',
+  'rules.overview.heading': 'Cómo funciona la puntuación',
+  'rules.overview.body': 'Tu total es la suma de cuatro cosas: tus pronósticos de marcador (cada partido, desde la fase de grupos hasta la final), tus pronósticos de clasificación de grupo (quién termina 1°/2°/3° en cada grupo), tus 8 mejores terceros, y los bonos por acertar el marcador exacto. Los partidos de eliminación tienen un giro adicional — la elegibilidad — explicado abajo.',
+  'rules.group.heading': 'Puntuación de partidos de fase de grupos',
+  'rules.group.body': 'Para cada partido de la fase de grupos pronosticas el marcador final. Ganas puntos por acertar el resultado (gana local, empate o gana visitante), con un bono por clavar el marcador exacto.',
+  'rules.group.correctOutcome': 'Resultado correcto',
+  'rules.group.exactScore': 'Marcador exacto',
+  'rules.group.maxPerGame': 'Máx por partido',
+  'rules.knockout.heading': 'Puntuación de partidos de eliminación',
+  'rules.knockout.body': 'Los puntos de eliminación suben en cada ronda. Ganas el valor de "ganador" por elegir al equipo que avanza, más el bono por marcador exacto.',
+  'rules.knockout.col.round': 'Ronda',
+  'rules.knockout.col.correctWinner': 'Ganador correcto',
+  'rules.knockout.col.exactScore': '+ Marcador exacto',
+  'rules.knockout.col.max': 'Máx',
+  'rules.qual.heading': 'Pronósticos de clasificación de grupo',
+  'rules.qual.body': 'Para cada grupo también eliges quién termina 1°, 2° y 3°. Obtienes el valor completo por acertar la posición exacta, y 1 punto de consolación si tu equipo igual clasificó en una posición cercana.',
+  'rules.qual.firstLabel': 'Tu pronóstico de 1er lugar:',
+  'rules.qual.firstDesc': '4 pts si termina 1° · si no, 1 pt si termina en el top 2 o 3°.',
+  'rules.qual.secondLabel': 'Tu pronóstico de 2do lugar:',
+  'rules.qual.secondDesc': '3 pts si termina 2° · si no, 1 pt si termina en el top 2 o 3°.',
+  'rules.qual.thirdLabel': 'Tu pronóstico de 3er lugar:',
+  'rules.qual.thirdDesc': '2 pts si termina 3° · si no, 1 pt si termina en el top 2.',
+  'rules.best.heading': 'Los 8 mejores terceros',
+  'rules.best.body': 'Doce equipos terminan 3° en su grupo, pero solo 8 avanzan a los Dieciseisavos. Tú eliges cuáles 8 crees que lo logran. Cada equipo que elijas que realmente avance vale 1 punto. Debes seleccionar exactamente 8.',
+  'rules.elig.heading': 'Elegibilidad en eliminación — el giro importante',
+  'rules.elig.body': 'En las rondas de eliminación solo puntúas un partido si acertaste que sus equipos llegaran hasta ahí. Para cada cruce real miramos los dos equipos que realmente juegan y verificamos a cuántos de ellos hiciste avanzar correctamente ("son tuyos"):',
+  'rules.elig.bothLabel': 'Ambos equipos son tuyos',
+  'rules.elig.bothDesc': '— puntuación normal completa: puntos de ganador más el bono por marcador exacto.',
+  'rules.elig.oneLabel': 'Un equipo es tuyo',
+  'rules.elig.oneDesc': '— estás obligado a que tu único equipo gane. Ganas los puntos de ganador de la ronda solo si ese equipo realmente gana — sin bono por marcador exacto, y tu propio pronóstico de marcador se ignora.',
+  'rules.elig.neitherLabel': 'Ningún equipo es tuyo',
+  'rules.elig.neitherDesc': '— el partido es nulo para ti: 0 puntos posibles.',
+  'rules.elig.owningTitle': 'De dónde viene que un equipo "sea tuyo":',
+  'rules.elig.owningR32Label': 'Dieciseisavos:',
+  'rules.elig.owningR32Desc': 'los equipos que pronosticaste 1°/2° en su grupo, más tus 8 mejores terceros.',
+  'rules.elig.owningAfterLabel': 'Cada ronda posterior:',
+  'rules.elig.owningAfterDesc': 'los equipos que elegiste para ganar su partido en la ronda anterior.',
+  'rules.elig.exampleLabel': 'Ejemplo:',
+  'rules.elig.exampleBody': 'Un cuarto de final es Brasil vs. Francia. Hiciste avanzar correctamente a Brasil desde los Octavos pero tenías a Francia eliminada. Ese es un partido de "un equipo tuyo": te llevas los puntos de ganador del cuarto de final solo si Brasil realmente gana — tu marcador pronosticado no importa.',
+  'rules.tiebreak.heading': 'Posiciones y desempates',
+  'rules.tiebreak.intro': 'Las posiciones de grupo y el ranking de mejores terceros se ordenan por:',
+  'rules.tiebreak.points': 'Puntos',
+  'rules.tiebreak.gd': 'Diferencia de goles',
+  'rules.tiebreak.gf': 'Goles a favor',
+  'rules.tiebreak.body': 'Cuando los equipos están igualados en los tres en un límite de clasificación, el orden no puede decidirse automáticamente — el admin lo resuelve usando los desempates adicionales de la FIFA (enfrentamiento directo, juego limpio, sorteo). En el selector de los 8 mejores terceros, el top 8 claro se bloquea automáticamente; solo los equipos empatados justo en el límite 8°/9° quedan para que tú elijas.',
+
+  // ---- bracket shell ----
+  'bracket.tieOne': '{count} empate',
+  'bracket.tieOther': '{count} empates',
+  'bracket.roundNotOpen': 'Esta ronda aún no ha abierto. Vuelve pronto.',
+  'bracket.roundLocked': 'Los pronósticos están bloqueados para esta ronda. Se están ingresando los resultados.',
+  'bracket.roundCompleted': 'Esta ronda está completa. Los puntajes ya fueron calculados.',
+  'bracket.groupOne': '{count} grupo',
+  'bracket.groupOther': '{count} grupos',
+  'bracket.unresolvedSuffix': 'tienen posiciones empatadas que necesitan resolverse manualmente antes de que tu cuadro esté completo.',
+
+  // ---- best 8 trigger / group stage tab ----
+  'best8.title': 'Los 8 Mejores Terceros',
+  'best8.tieResolve': 'empate — resuelve manualmente',
+  'best8.allConfirmed': '✓ 8/8 confirmados',
+  'best8.confirmed': '{count}/8 confirmados',
+
+  // ---- group card ----
+  'group.name': 'Grupo {letter}',
+  'group.matches': 'partidos',
+  'group.simulatedStandings': 'Posiciones Simuladas',
+  'group.tiedMarkerNote': 'Las posiciones empatadas están marcadas con ? — elígelas manualmente abajo.',
+  'group.unresolvedNote': 'Las posiciones empatadas necesitan resolverse manualmente — elige los espacios resaltados abajo.',
+
+  // ---- group qualification picker ----
+  'picker.title': 'Pronóstico de Posiciones del Grupo',
+  'picker.pickTeam': '— elige un equipo —',
+  'picker.tiedPickManually': '— empate, elige manualmente —',
+
+  // ---- knockout match card ----
+  'knockout.noMatches': 'Aún no hay partidos programados para esta ronda.',
+  'knockout.fullScoring': 'Puntuación completa',
+  'knockout.forced': 'Forzado: {name} avanza · solo pts de avance',
+  'knockout.void': 'Nulo — sin puntos posibles',
+  'knockout.advances': '✓ avanza',
+  'knockout.selectWinner': 'Selecciona ganador (botón) — requerido para puntos',
+  'knockout.winnerForced': 'Ganador forzado — solo puntúas si {name} avanza',
+  'knockout.teamsTbd': 'Equipos por definir',
+  'knockout.pickWinnerTitle': 'Elegir como ganador',
+  'knockout.zeroPts': '0 pts',
+
+  // ---- third place selector ----
+  'third.subtitle': '{count}/12 grupos pronosticados · selecciona los 8 que avanzan a {round}',
+  'third.rankedNote': 'Ordenado por Pts → DG → GF. Para empates en el límite 8°/9°, elige manualmente.',
+  'third.groupsRemainingOne': '{count} grupo aún sin pronósticos — el ranking cambiará a medida que los completes.',
+  'third.groupsRemainingOther': '{count} grupos aún sin pronósticos — el ranking cambiará a medida que los completes.',
+  'third.enterScores': 'Ingresa marcadores de al menos un grupo para ver el ranking de terceros.',
+  'third.boundaryTie': 'Empate en el límite 8°/9° — marca qué equipos crees que avanzan.',
+  'third.selectedCount': '{count}/8 seleccionados',
+  'third.selectExactly': '— selecciona exactamente 8 para confirmar',
+
+  // ---- admin ----
+  'admin.title': 'Panel de Admin',
+  'admin.subtitle': 'Gestiona rondas, ingresa resultados, recalcula puntajes.',
+  'admin.tab.rounds': 'Gestor de Rondas',
+  'admin.tab.results': 'Ingresar Resultados',
+  'admin.tab.slots': 'Espacios de Eliminación',
+  'admin.tab.standings': 'Posiciones de Grupo',
+  'admin.tab.users': 'Usuarios',
+  'admin.exportXlsx': '↓ Exportar XLSX',
+
+  // ---- admin: rounds ----
+  'admin.rounds.col.round': 'Ronda',
+  'admin.rounds.col.status': 'Estado',
+  'admin.rounds.col.actions': 'Acciones',
+  'admin.rounds.active': '● activa',
+  'admin.rounds.open': '🔓 Abrir',
+  'admin.rounds.lock': '🔒 Bloquear',
+  'admin.rounds.complete': '✓ Completar',
+  'admin.rounds.recalculate': '⟳ Recalcular',
+  'admin.rounds.calculating': 'Calculando…',
+  'admin.rounds.movedTo': 'Movida a "{status}"',
+  'admin.rounds.revertedTo': 'Revertida a "{status}"',
+  'admin.rounds.recalcDone': '¡Puntajes recalculados!',
+  'admin.rounds.revertConfirm': '¿Revertir "{label}" de "{from}" a "{to}"?',
+
+  // ---- admin: results ----
+  'admin.results.enterValidScores': 'Ingresa marcadores válidos',
+  'admin.results.assignBothTeams': 'Asigna ambos equipos primero (pestaña Espacios de Eliminación)',
+  'admin.results.tiedEnterPens': 'Empate — ingresa los penales',
+  'admin.results.pensNotEqual': 'Los penales no pueden ser iguales',
+  'admin.results.saved': '¡Guardado!',
+  'admin.results.resultCleared': 'Resultado borrado',
+  'admin.results.clearConfirm': '¿Borrar el resultado del partido {number}: {home} vs {away}?',
+  'admin.results.pens': 'penales',
+  'admin.results.pensSuffix': '({home}–{away} penales)',
+  'admin.results.winner': 'Ganador:',
+  'admin.results.clear': '✕ borrar',
+
+  // ---- admin: knockout slots ----
+  'admin.slots.canFillOne': '{count} partido puede llenarse desde los presets (los espacios con empate / sin definir se omiten).',
+  'admin.slots.canFillOther': '{count} partidos pueden llenarse desde los presets (los espacios con empate / sin definir se omiten).',
+  'admin.slots.assignAll': 'Asignar todos los presets',
+  'admin.slots.assigned': '¡Asignado!',
+  'admin.slots.homeTeam': 'Equipo local…',
+  'admin.slots.awayTeam': 'Equipo visitante…',
+  'admin.slots.assign': 'Asignar',
+  'admin.slots.tieVerify': '⚠ Empate — verifica el clasificado correcto',
+  'admin.slots.prevNotDecided': 'Ronda anterior no definida',
+
+  // ---- admin: standings ----
+  'admin.standings.legend': 'Verde = clasifica automáticamente | Ámbar = posible mejor tercero',
+  'admin.standings.bestThirdTitle': 'Mejores Terceros ({count}/12) — elige 8 para avanzar',
+  'admin.standings.selectedCount': '{count}/8 seleccionados',
+  'admin.standings.boundaryTie': 'Empate detectado en el límite 8°/9° — selecciona manualmente qué equipos avanzan.',
+  'admin.standings.footerTie': 'Marca/desmarca equipos empatados hasta que haya exactamente 8 seleccionados',
+  'admin.standings.footerNoTie': 'Ordenado por Pts → DG → GF | Confirma para fijar los 8 clasificados',
+  'admin.standings.confirmQualifiers': 'Confirmar clasificados',
+
+  // ---- admin: users ----
+  'admin.users.addAdmin': 'Agregar Admin',
+  'admin.users.addPlaceholder': 'usuario@ejemplo.com',
+  'admin.users.addedAsAdmin': '{email} agregado como admin',
+  'admin.users.removedFromAdmins': '{email} eliminado de admins',
+  'admin.users.col.user': 'Usuario',
+  'admin.users.col.role': 'Rol',
+  'admin.users.col.entries': 'Cuadros',
+  'admin.users.col.submission': 'Estado de Envío',
+  'admin.users.superAdmin': 'Súper Admin',
+  'admin.users.admin': 'Admin',
+  'admin.users.user': 'Usuario',
+  'admin.users.none': 'Ninguno',
+  'admin.users.removeAdmin': 'Quitar admin',
+  'admin.users.filled': 'llenos',
+}

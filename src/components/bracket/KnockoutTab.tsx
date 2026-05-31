@@ -1,6 +1,7 @@
 'use client'
 
 import { KnockoutMatchCard } from './KnockoutMatchCard'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import type { MatchWithTeams, Prediction } from '@/types/app'
 
@@ -14,10 +15,11 @@ interface KnockoutTabProps {
 }
 
 export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving, eligibility }: KnockoutTabProps) {
+  const t = useT()
   if (matches.length === 0) {
     return (
       <div className="py-16 text-center text-slate-500">
-        <p className="text-lg">No matches scheduled yet for this round.</p>
+        <p className="text-lg">{t('knockout.noMatches')}</p>
       </div>
     )
   }

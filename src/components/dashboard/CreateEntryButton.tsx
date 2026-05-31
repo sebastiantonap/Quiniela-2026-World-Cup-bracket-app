@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createEntry } from '@/actions/entries'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useT } from '@/lib/i18n/I18nProvider'
 
 export function CreateEntryButton() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,17 +33,17 @@ export function CreateEntryButton() {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>+ New bracket</Button>
+      <Button onClick={() => setOpen(true)}>{t('createEntry.new')}</Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-semibold text-slate-100">Create new bracket</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-100">{t('createEntry.modalTitle')}</h2>
             <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <Input
                 id="bracket-name"
-                label="Bracket name"
-                placeholder="e.g. My World Cup Picks"
+                label={t('createEntry.nameLabel')}
+                placeholder={t('createEntry.namePlaceholder')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
@@ -50,7 +52,7 @@ export function CreateEntryButton() {
               />
               <div className="flex gap-3">
                 <Button type="submit" loading={loading} className="flex-1">
-                  Create
+                  {t('common.create')}
                 </Button>
                 <Button
                   type="button"
@@ -58,7 +60,7 @@ export function CreateEntryButton() {
                   onClick={() => { setOpen(false); setError(null); setName('') }}
                   className="flex-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </form>

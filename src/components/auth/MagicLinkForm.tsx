@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { signIn } from '@/actions/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useT } from '@/lib/i18n/I18nProvider'
 
 export function MagicLinkForm() {
+  const t = useT()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,8 +27,8 @@ export function MagicLinkForm() {
       <Input
         id="email"
         type="email"
-        label="Email address"
-        placeholder="you@example.com"
+        label={t('auth.emailLabel')}
+        placeholder={t('auth.emailPlaceholder')}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -34,7 +36,7 @@ export function MagicLinkForm() {
         error={error ?? undefined}
       />
       <Button type="submit" loading={loading} size="lg">
-        Enter →
+        {t('auth.enter')}
       </Button>
     </form>
   )

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import type { MatchWithTeams, Prediction } from '@/types/app'
 
@@ -16,6 +17,7 @@ interface KnockoutMatchCardProps {
 }
 
 export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility }: KnockoutMatchCardProps) {
+  const t = useT()
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
   const [localWinner, setLocalWinner] = useState<string | null>(
@@ -24,8 +26,8 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
 
   const homeTeam = match.home_team
   const awayTeam = match.away_team
-  const homeName = homeTeam?.name ?? match.placeholder_home ?? 'TBD'
-  const awayName = awayTeam?.name ?? match.placeholder_away ?? 'TBD'
+  const homeName = homeTeam?.name ?? match.placeholder_home ?? t('common.tbd')
+  const awayName = awayTeam?.name ?? match.placeholder_away ?? t('common.tbd')
   const homeFlag = homeTeam?.flag_emoji ?? ''
   const awayFlag = awayTeam?.flag_emoji ?? ''
   const slotsUnfilled = !homeTeam || !awayTeam
@@ -67,7 +69,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       if (isPartial && teamId && teamId === forcedWinnerTeamId) {
         return (
           <span className="rounded bg-emerald-900/30 px-2 py-1 text-[11px] font-semibold text-emerald-400">
-            ✓ advances
+            {t('knockout.advances')}
           </span>
         )
       }
@@ -96,25 +98,25 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         {hasResult && pts !== null && pts !== undefined && (
           pts > 0
             ? <PointsBadge points={pts} />
-            : <span className="text-xs text-slate-500">0 pts</span>
+            : <span className="text-xs text-slate-500">{t('knockout.zeroPts')}</span>
         )}
-        {saving && <span className="text-xs text-slate-500">saving…</span>}
+        {saving && <span className="text-xs text-slate-500">{t('common.saving')}</span>}
       </div>
 
       {/* Eligibility status banner */}
       {showEligibility && status === 'full' && (
         <div className="mb-3 rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-emerald-400">
-          Full scoring
+          {t('knockout.fullScoring')}
         </div>
       )}
       {showEligibility && isPartial && (
         <div className="mb-3 rounded-lg border border-amber-800/40 bg-amber-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-400">
-          Forced: {forcedName} advances · advance pts only
+          {t('knockout.forced', { name: forcedName })}
         </div>
       )}
       {showEligibility && isVoid && (
         <div className="mb-3 rounded-lg border border-slate-600 bg-slate-700/40 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-400">
-          Void — no points possible
+          {t('knockout.void')}
         </div>
       )}
 
@@ -128,7 +130,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
               checked={localWinner === homeTeam.id}
               onChange={() => handleWinnerChange(homeTeam.id)}
               className="accent-amber-500"
-              title="Pick as winner"
+              title={t('knockout.pickWinnerTitle')}
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
@@ -138,7 +140,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         {renderTrailing(homeTeam?.id, localHome, handleHomeChange, prediction?.predicted_home)}
       </div>
 
-      <div className="border-t border-slate-700 py-0.5 text-center text-xs text-slate-500">vs</div>
+      <div className="border-t border-slate-700 py-0.5 text-center text-xs text-slate-500">{t('common.vs')}</div>
 
       {/* Away team */}
       <div className="flex items-center justify-between gap-2 py-1.5">
@@ -150,7 +152,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
               checked={localWinner === awayTeam.id}
               onChange={() => handleWinnerChange(awayTeam.id)}
               className="accent-amber-500"
-              title="Pick as winner"
+              title={t('knockout.pickWinnerTitle')}
             />
           )}
           <span className="truncate text-sm font-medium text-slate-200">
@@ -162,16 +164,16 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
 
       {effectiveEditable && status === 'full' && (
         <p className="mt-2 text-center text-xs text-slate-500">
-          Select winner (radio) — required for points
+          {t('knockout.selectWinner')}
         </p>
       )}
       {effectiveEditable && isPartial && (
         <p className="mt-2 text-center text-xs text-slate-500">
-          Winner forced — you score only if {forcedName} advances
+          {t('knockout.winnerForced', { name: forcedName })}
         </p>
       )}
       {slotsUnfilled && (
-        <p className="mt-2 text-center text-xs text-slate-500">Teams TBD</p>
+        <p className="mt-2 text-center text-xs text-slate-500">{t('knockout.teamsTbd')}</p>
       )}
     </div>
   )

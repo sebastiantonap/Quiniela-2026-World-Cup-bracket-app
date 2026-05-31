@@ -8,7 +8,9 @@ import { usePredictions } from '@/hooks/usePredictions'
 import { useQualifications } from '@/hooks/useQualifications'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND, type KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
-import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
+import { ROUND_ORDER } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Prediction, Round, RoundName, Team, Group, QualState } from '@/types/app'
 
 interface BracketShellProps {
@@ -32,6 +34,7 @@ export function BracketShell({
   initialThirdPlaceSelections,
   readOnly = false,
 }: BracketShellProps) {
+  const t = useT()
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
 
   const defaultTab =
@@ -127,11 +130,11 @@ export function BracketShell({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {ROUND_LABELS[roundName]}
+                {roundLabel(t, roundName)}
                 <RoundStatusBadge status={round.status} />
                 {roundName !== 'group_stage' && unresolvedGroupCount > 0 && (
                   <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
-                    {unresolvedGroupCount} tie{unresolvedGroupCount !== 1 ? 's' : ''}
+                    {t(unresolvedGroupCount === 1 ? 'bracket.tieOne' : 'bracket.tieOther', { count: unresolvedGroupCount })}
                   </span>
                 )}
               </button>
@@ -143,17 +146,17 @@ export function BracketShell({
       {/* Status banners */}
       {!isEditable && activeRoundData?.status === 'pending' && (
         <div className="mb-4 rounded-xl bg-slate-800 px-4 py-3 text-sm text-slate-400 border border-slate-700">
-          This round hasn't opened yet. Check back soon.
+          {t('bracket.roundNotOpen')}
         </div>
       )}
       {!isEditable && activeRoundData?.status === 'locked' && (
         <div className="mb-4 rounded-xl bg-amber-900/20 border border-amber-800/40 px-4 py-3 text-sm text-amber-400">
-          Predictions are locked for this round. Results are being entered.
+          {t('bracket.roundLocked')}
         </div>
       )}
       {!isEditable && activeRoundData?.status === 'completed' && (
         <div className="mb-4 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-sm text-slate-400">
-          This round is complete. Scores have been calculated.
+          {t('bracket.roundCompleted')}
         </div>
       )}
 

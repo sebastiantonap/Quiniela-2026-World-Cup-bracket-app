@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/auth/isAdmin'
 import { getAdminUsers } from '@/actions/admin/users'
 import { Nav } from '@/components/Nav'
 import { AdminPanel } from '@/components/admin/AdminPanel'
+import { getT } from '@/lib/i18n/server'
 import type { MatchWithTeams, Round } from '@/types/app'
 
 export default async function AdminPage() {
@@ -13,6 +14,8 @@ export default async function AdminPage() {
   if (!await isAdmin(email)) {
     redirect('/dashboard')
   }
+
+  const { t } = await getT()
 
   const supabase = getSupabaseAdminClient()
 
@@ -39,9 +42,9 @@ export default async function AdminPage() {
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-100">Admin Panel</h1>
+          <h1 className="text-2xl font-bold text-slate-100">{t('admin.title')}</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Manage rounds, enter results, recalculate scores.
+            {t('admin.subtitle')}
           </p>
         </div>
         <AdminPanel
