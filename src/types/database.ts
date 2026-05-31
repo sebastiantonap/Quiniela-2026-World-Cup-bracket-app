@@ -60,6 +60,8 @@ export interface Database {
           venue: string | null
           home_score: number | null
           away_score: number | null
+          home_penalties: number | null
+          away_penalties: number | null
           winner_team_id: string | null
           result_confirmed: boolean
           created_at: string

@@ -4,15 +4,14 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { assignKnockoutTeams } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
-import { computeGroupStandings } from '@/lib/standings/groupStandings'
 import {
+  buildSlotContext,
   parseSlotPlaceholder,
   resolveKnockoutSlot,
   type ResolvedSlot,
-  type SlotContext,
 } from '@/lib/standings/knockoutSlots'
-import { ROUND_LABELS, GROUP_LETTERS } from '@/lib/constants/rounds'
-import type { MatchWithTeams, Round, RoundName, Team, TeamStanding } from '@/types/app'
+import { ROUND_LABELS } from '@/lib/constants/rounds'
+import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
 
 interface KnockoutSlotFillerProps {
   rounds: Round[]
@@ -33,44 +32,8 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
 
   const teamById = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams])
 
-  // ---- Context for resolving slot presets, built from existing props (no fetch) ----
-  const ctx: SlotContext = useMemo(() => {
-    const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
-
-    const groupStandings: Record<string, TeamStanding[]> = {}
-    const thirds: (TeamStanding & { group: string })[] = []
-    for (const letter of GROUP_LETTERS) {
-      const groupTeams = teams.filter(
-        (t) =>
-          t.group_id &&
-          groupStageMatches.some(
-            (m) => m.group?.name === letter && (m.home_team_id === t.id || m.away_team_id === t.id)
-          )
-      )
-      if (groupTeams.length === 0) continue
-      const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
-      const standings = computeGroupStandings(groupTeams, groupMatches)
-      groupStandings[letter] = standings
-      if (standings[2]) thirds.push({ ...standings[2], group: letter })
-    }
-
-    // Confirmed best thirds, ranked by Pts → GD → GF → name (same comparator as group sort).
-    const bestThirds = thirds
-      .filter((s) => s.team.best_third_qualified)
-      .sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points
-        if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference
-        if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for
-        return a.team.name.localeCompare(b.team.name)
-      })
-
-    const matchByNumber = new Map(matches.map((m) => [m.match_number, m]))
-    const byNumber = (a: MatchWithTeams, b: MatchWithTeams) => a.match_number - b.match_number
-    const qfMatches = matches.filter((m) => m.round?.name === 'quarterfinals').sort(byNumber)
-    const sfMatches = matches.filter((m) => m.round?.name === 'semifinals').sort(byNumber)
-
-    return { groupStandings, bestThirds, matchByNumber, qfMatches, sfMatches }
-  }, [matches, teams])
+  // Context for resolving slot presets, built from existing props (no fetch).
+  const ctx = useMemo(() => buildSlotContext(matches, teams), [matches, teams])
 
   const roundMatches = useMemo(
     () => matches.filter((m) => m.round?.name === selectedRound).sort((a, b) => a.match_number - b.match_number),

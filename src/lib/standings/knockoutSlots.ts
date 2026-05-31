@@ -1,5 +1,6 @@
-import type { MatchWithTeams, TeamStanding } from '@/types/app'
-import { isStandingsTie } from './groupStandings'
+import type { MatchWithTeams, Team, TeamStanding } from '@/types/app'
+import { computeGroupStandings, isStandingsTie } from './groupStandings'
+import { GROUP_LETTERS } from '@/lib/constants/rounds'
 
 /**
  * A knockout match slot ("home" / "away") carries a placeholder string that encodes which
@@ -80,6 +81,52 @@ function resolveFromMatch(match: MatchWithTeams | undefined, want: 'winner' | 'l
     isTie: false,
     ready: true,
   }
+}
+
+/**
+ * Build the resolution context from the admin's full match + team lists.
+ * Shared by the slot filler and the results-entry view.
+ */
+export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): SlotContext {
+  const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
+
+  const groupStandings: Record<string, TeamStanding[]> = {}
+  const thirds: TeamStanding[] = []
+  for (const letter of GROUP_LETTERS) {
+    const groupTeams = teams.filter(
+      (t) =>
+        t.group_id &&
+        groupStageMatches.some(
+          (m) => m.group?.name === letter && (m.home_team_id === t.id || m.away_team_id === t.id)
+        )
+    )
+    if (groupTeams.length === 0) continue
+    const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
+    const standings = computeGroupStandings(groupTeams, groupMatches)
+    groupStandings[letter] = standings
+    if (standings[2]) thirds.push(standings[2])
+  }
+
+  const bestThirds = thirds
+    .filter((s) => s.team.best_third_qualified)
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points
+      if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference
+      if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for
+      return a.team.name.localeCompare(b.team.name)
+    })
+
+  const matchByNumber = new Map(matches.map((m) => [m.match_number, m]))
+  const byNumber = (a: MatchWithTeams, b: MatchWithTeams) => a.match_number - b.match_number
+  const qfMatches = matches.filter((m) => m.round?.name === 'quarterfinals').sort(byNumber)
+  const sfMatches = matches.filter((m) => m.round?.name === 'semifinals').sort(byNumber)
+
+  return { groupStandings, bestThirds, matchByNumber, qfMatches, sfMatches }
+}
+
+/** Convenience: the team id a placeholder currently resolves to, or null if undecided. */
+export function resolveSlotTeamId(placeholder: string | null, ctx: SlotContext): string | null {
+  return resolveKnockoutSlot(parseSlotPlaceholder(placeholder), ctx).presetTeamId
 }
 
 export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext): ResolvedSlot {

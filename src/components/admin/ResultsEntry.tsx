@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveMatchResult, clearMatchResult } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
+import { buildSlotContext, resolveSlotTeamId } from '@/lib/standings/knockoutSlots'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
 
@@ -13,67 +14,94 @@ interface ResultsEntryProps {
   teams: Team[]
 }
 
+type ScoreState = { home: string; away: string; hpen: string; apen: string }
+
 export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
   const [selectedRound, setSelectedRound] = useState<RoundName>('group_stage')
-  const [scores, setScores] = useState<Record<string, { home: string; away: string; winner: string }>>({})
+  const [scores, setScores] = useState<Record<string, ScoreState>>({})
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
   const router = useRouter()
 
+  const teamById = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams])
+  const ctx = useMemo(() => buildSlotContext(matches, teams), [matches, teams])
+
   const roundMatches = matches.filter((m) => m.round?.name === selectedRound)
   const isKnockout = selectedRound !== 'group_stage'
 
-  function getScore(matchId: string, field: 'home' | 'away' | 'winner') {
+  function getScore(matchId: string, field: keyof ScoreState) {
     return scores[matchId]?.[field] ?? ''
   }
 
-  function setScore(matchId: string, field: 'home' | 'away' | 'winner', value: string) {
+  function setScore(matchId: string, field: keyof ScoreState, value: string) {
     setScores((prev) => ({
       ...prev,
-      [matchId]: { ...prev[matchId], home: prev[matchId]?.home ?? '', away: prev[matchId]?.away ?? '', winner: prev[matchId]?.winner ?? '', [field]: value },
+      [matchId]: {
+        home: prev[matchId]?.home ?? '',
+        away: prev[matchId]?.away ?? '',
+        hpen: prev[matchId]?.hpen ?? '',
+        apen: prev[matchId]?.apen ?? '',
+        [field]: value,
+      },
     }))
   }
 
+  // Resolve a side's display: assigned team → resolved feeding-match winner → raw placeholder.
+  function sideDisplay(team: Team | null, placeholder: string | null) {
+    if (team) return `${team.flag_emoji ?? ''} ${team.name}`.trim()
+    const resolvedId = resolveSlotTeamId(placeholder, ctx)
+    const resolved = resolvedId ? teamById.get(resolvedId) : null
+    if (resolved) return `${resolved.flag_emoji ?? ''} ${resolved.name}`.trim()
+    return placeholder ?? '?'
+  }
+
   async function handleClear(match: MatchWithTeams) {
-    const homeName = match.home_team?.name ?? match.placeholder_home ?? '?'
-    const awayName = match.away_team?.name ?? match.placeholder_away ?? '?'
-    const confirmed = window.confirm(
-      `Clear result for match ${match.match_number}: ${homeName} vs ${awayName}?`
-    )
+    const homeName = sideDisplay(match.home_team, match.placeholder_home)
+    const awayName = sideDisplay(match.away_team, match.placeholder_away)
+    const confirmed = window.confirm(`Clear result for match ${match.match_number}: ${homeName} vs ${awayName}?`)
     if (!confirmed) return
 
     setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: true }))
     const result = await clearMatchResult(match.id)
-    setFeedback((prev) => ({
-      ...prev,
-      [match.id]: result.error ?? 'Result cleared',
-    }))
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Result cleared' }))
     setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: false }))
     router.refresh()
   }
 
   async function handleSave(match: MatchWithTeams) {
-    const matchScore = scores[match.id]
-    const home = parseInt(matchScore?.home ?? '', 10)
-    const away = parseInt(matchScore?.away ?? '', 10)
+    const s = scores[match.id]
+    const home = parseInt(s?.home ?? '', 10)
+    const away = parseInt(s?.away ?? '', 10)
     if (isNaN(home) || isNaN(away)) {
       setFeedback((prev) => ({ ...prev, [match.id]: 'Enter valid scores' }))
       return
     }
 
-    const winnerId = isKnockout ? (matchScore?.winner || null) : null
-    if (isKnockout && !winnerId) {
-      setFeedback((prev) => ({ ...prev, [match.id]: 'Select winner for knockout match' }))
-      return
+    let hpen: number | null = null
+    let apen: number | null = null
+    if (isKnockout) {
+      if (!match.home_team_id || !match.away_team_id) {
+        setFeedback((prev) => ({ ...prev, [match.id]: 'Assign both teams first (Knockout Slots tab)' }))
+        return
+      }
+      if (home === away) {
+        hpen = parseInt(s?.hpen ?? '', 10)
+        apen = parseInt(s?.apen ?? '', 10)
+        if (isNaN(hpen) || isNaN(apen)) {
+          setFeedback((prev) => ({ ...prev, [match.id]: 'Tied — enter penalty scores' }))
+          return
+        }
+        if (hpen === apen) {
+          setFeedback((prev) => ({ ...prev, [match.id]: 'Penalty scores cannot be equal' }))
+          return
+        }
+      }
     }
 
     setLoading((prev) => ({ ...prev, [match.id]: true }))
-    const result = await saveMatchResult(match.id, home, away, winnerId)
-    setFeedback((prev) => ({
-      ...prev,
-      [match.id]: result.error ?? 'Saved!',
-    }))
+    const result = await saveMatchResult(match.id, home, away, hpen, apen)
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Saved!' }))
     setLoading((prev) => ({ ...prev, [match.id]: false }))
     router.refresh()
   }
@@ -103,28 +131,47 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
 
       <div className="space-y-2">
         {roundMatches.map((match) => {
-          const homeName = match.home_team?.name ?? match.placeholder_home ?? '?'
-          const awayName = match.away_team?.name ?? match.placeholder_away ?? '?'
-          const homeFlag = match.home_team?.flag_emoji ?? ''
-          const awayFlag = match.away_team?.flag_emoji ?? ''
+          const homeLabel = sideDisplay(match.home_team, match.placeholder_home)
+          const awayLabel = sideDisplay(match.away_team, match.placeholder_away)
+
+          // Live tie detection drives the penalty inputs (knockout only).
+          const h = parseInt(getScore(match.id, 'home'), 10)
+          const a = parseInt(getScore(match.id, 'away'), 10)
+          const isTie = !isNaN(h) && !isNaN(a) && h === a
+          const showPens = isKnockout && isTie
+
+          // Derived winner for the in-progress entry.
+          let winnerLabel = ''
+          if (isKnockout && !isNaN(h) && !isNaN(a)) {
+            if (h > a) winnerLabel = homeLabel
+            else if (a > h) winnerLabel = awayLabel
+            else {
+              const hp = parseInt(getScore(match.id, 'hpen'), 10)
+              const ap = parseInt(getScore(match.id, 'apen'), 10)
+              if (!isNaN(hp) && !isNaN(ap) && hp !== ap) winnerLabel = hp > ap ? homeLabel : awayLabel
+            }
+          }
 
           return (
             <div
               key={match.id}
               className={`flex flex-wrap items-center gap-4 rounded-xl px-4 py-3 border ${
-                match.result_confirmed
-                  ? 'border-green-700/50 bg-green-900/20'
-                  : 'border-slate-700 bg-slate-800'
+                match.result_confirmed ? 'border-green-700/50 bg-green-900/20' : 'border-slate-700 bg-slate-800'
               }`}
             >
               <span className="w-6 text-xs text-slate-500">{match.match_number}</span>
               <span className="flex-1 min-w-0 text-sm font-medium text-slate-200 truncate">
-                {homeFlag} {homeName} vs {awayFlag} {awayName}
+                {homeLabel} vs {awayLabel}
               </span>
 
               {match.result_confirmed && (
                 <span className="text-sm font-bold text-green-400">
                   {match.home_score}–{match.away_score}
+                  {match.home_penalties !== null && match.away_penalties !== null && (
+                    <span className="ml-1 text-xs font-medium text-green-500/80">
+                      ({match.home_penalties}–{match.away_penalties} pens)
+                    </span>
+                  )}
                 </span>
               )}
 
@@ -149,20 +196,29 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                   className="w-14 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-center text-sm text-slate-200 placeholder:text-slate-500"
                 />
 
-                {isKnockout && (
-                  <select
-                    value={getScore(match.id, 'winner')}
-                    onChange={(e) => setScore(match.id, 'winner', e.target.value)}
-                    className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
-                  >
-                    <option value="">Winner…</option>
-                    {match.home_team && (
-                      <option value={match.home_team.id}>{match.home_team.name}</option>
-                    )}
-                    {match.away_team && (
-                      <option value={match.away_team.id}>{match.away_team.name}</option>
-                    )}
-                  </select>
+                {showPens && (
+                  <div className="flex items-center gap-1 rounded-lg border border-amber-700/50 bg-amber-900/10 px-2 py-1">
+                    <span className="text-[10px] font-semibold uppercase text-amber-400">pens</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      placeholder="H"
+                      value={getScore(match.id, 'hpen')}
+                      onChange={(e) => setScore(match.id, 'hpen', e.target.value)}
+                      className="w-11 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-center text-sm text-slate-200 placeholder:text-slate-500"
+                    />
+                    <span className="text-slate-500">-</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      placeholder="A"
+                      value={getScore(match.id, 'apen')}
+                      onChange={(e) => setScore(match.id, 'apen', e.target.value)}
+                      className="w-11 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-center text-sm text-slate-200 placeholder:text-slate-500"
+                    />
+                  </div>
                 )}
 
                 <Button size="sm" loading={loading[match.id]} onClick={() => handleSave(match)}>
@@ -181,8 +237,14 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                 )}
               </div>
 
+              {winnerLabel && (
+                <span className="text-xs text-slate-400">
+                  Winner: <span className="font-semibold text-slate-200">{winnerLabel}</span>
+                </span>
+              )}
+
               {feedback[match.id] && (
-                <span className={`text-xs ${feedback[match.id] === 'Saved!' ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`text-xs ${feedback[match.id] === 'Saved!' || feedback[match.id] === 'Result cleared' ? 'text-green-400' : 'text-red-400'}`}>
                   {feedback[match.id]}
                 </span>
               )}
