@@ -65,6 +65,10 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
   async function assignOne(match: MatchWithTeams) {
     const homeId = getSlot(match.id, 'home') || null
     const awayId = getSlot(match.id, 'away') || null
+    if (homeId && awayId && homeId === awayId) {
+      setFeedback((prev) => ({ ...prev, [match.id]: t('admin.slots.sameTeam') }))
+      return false
+    }
     const result = await assignKnockoutTeams(match.id, homeId, awayId)
     setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.slots.assigned') }))
     return !result.error
@@ -94,6 +98,21 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
     for (const m of autoAssignable) await assignOne(m)
     setBulkLoading(false)
     router.refresh()
+  }
+
+  // Teams already placed elsewhere in this round (assigned or pending selection) are
+  // excluded from other slots' dropdowns so the same team can't fill two slots.
+  function currentTeamFor(m: MatchWithTeams, side: 'home' | 'away'): string {
+    const assigned = side === 'home' ? m.home_team_id : m.away_team_id
+    return assigned ?? getSlot(m.id, side)
+  }
+  const chosen = roundMatches.flatMap((m) => [
+    { key: `${m.id}:home`, teamId: currentTeamFor(m, 'home') },
+    { key: `${m.id}:away`, teamId: currentTeamFor(m, 'away') },
+  ]).filter((c) => c.teamId)
+  function excludedFor(matchId: string, side: 'home' | 'away'): Set<string> {
+    const selfKey = `${matchId}:${side}`
+    return new Set(chosen.filter((c) => c.key !== selfKey).map((c) => c.teamId))
   }
 
   return (
@@ -159,6 +178,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                     <SlotSelect
                       value={getSlot(match.id, 'home')}
                       candidates={r?.home.candidateTeamIds ?? []}
+                      excluded={excludedFor(match.id, 'home')}
                       teamById={teamById}
                       placeholder={t('admin.slots.homeTeam')}
                       onChange={(v) => setSlot(match.id, 'home', v)}
@@ -167,6 +187,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                     <SlotSelect
                       value={getSlot(match.id, 'away')}
                       candidates={r?.away.candidateTeamIds ?? []}
+                      excluded={excludedFor(match.id, 'away')}
                       teamById={teamById}
                       placeholder={t('admin.slots.awayTeam')}
                       onChange={(v) => setSlot(match.id, 'away', v)}
@@ -207,16 +228,20 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
 function SlotSelect({
   value,
   candidates,
+  excluded,
   teamById,
   placeholder,
   onChange,
 }: {
   value: string
   candidates: string[]
+  excluded?: Set<string>
   teamById: Map<string, Team>
   placeholder: string
   onChange: (value: string) => void
 }) {
+  // Keep the currently selected team visible; drop teams already used in other slots.
+  const options = candidates.filter((id) => id === value || !excluded?.has(id))
   return (
     <select
       value={value}
@@ -224,7 +249,7 @@ function SlotSelect({
       className="rounded border border-slate-600 bg-slate-700 px-2 py-1 text-sm text-slate-200"
     >
       <option value="">{placeholder}</option>
-      {candidates.map((id) => {
+      {options.map((id) => {
         const t = teamById.get(id)
         if (!t) return null
         return (

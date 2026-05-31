@@ -78,6 +78,14 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [confirmSuccess, setConfirmSuccess] = useState(preConfirmedIds.size > 0)
 
+  // Without a boundary tie the 8 qualifiers are deterministic (top 8 by the sort), so
+  // confirmation shouldn't depend on the manual checkbox state. Only the tie case needs
+  // the admin's manual picks.
+  const effectiveIds = hasBoundaryTie
+    ? Array.from(selectedIds)
+    : thirdPlaceTeams.slice(0, 8).map((tp) => tp.team.id)
+  const canConfirm = !isPending && effectiveIds.length === 8
+
   function getRowStatus(index: number): 'locked-in' | 'locked-out' | 'selectable' {
     if (!hasBoundaryTie) return index < 8 ? 'locked-in' : 'locked-out'
     if (index < tieZoneStart) return 'locked-in'
@@ -96,10 +104,10 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
   }
 
   function handleConfirm() {
-    if (selectedIds.size !== 8) return
+    if (effectiveIds.length !== 8) return
     setConfirmError(null)
     startTransition(async () => {
-      const result = await confirmThirdPlaceQualifiers(Array.from(selectedIds))
+      const result = await confirmThirdPlaceQualifiers(effectiveIds)
       if (result.error) setConfirmError(result.error)
       else setConfirmSuccess(true)
     })
@@ -169,7 +177,7 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
               {t('admin.standings.bestThirdTitle', { count: thirdPlaceTeams.length })}
             </h3>
             <span className="text-xs text-slate-400">
-              {t('admin.standings.selectedCount', { count: selectedIds.size })}
+              {t('admin.standings.selectedCount', { count: effectiveIds.length })}
             </span>
           </div>
 
@@ -259,7 +267,7 @@ export function GroupStandings({ matches, teams }: GroupStandingsProps) {
               )}
               <button
                 onClick={handleConfirm}
-                disabled={selectedIds.size !== 8 || isPending}
+                disabled={!canConfirm}
                 className="rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isPending ? t('common.savingCap') : t('admin.standings.confirmQualifiers')}

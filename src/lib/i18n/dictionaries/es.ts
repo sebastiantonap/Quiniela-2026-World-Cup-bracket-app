@@ -271,6 +271,7 @@ export const es: Dictionary = {
   'admin.slots.assign': 'Asignar',
   'admin.slots.tieVerify': '⚠ Empate — verifica el clasificado correcto',
   'admin.slots.prevNotDecided': 'Ronda anterior no definida',
+  'admin.slots.sameTeam': 'Local y visitante no pueden ser el mismo equipo',
 
   // ---- admin: standings ----
   'admin.standings.legend': 'Verde = clasifica automáticamente | Ámbar = posible mejor tercero',

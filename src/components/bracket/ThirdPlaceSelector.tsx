@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import {
   sortThirdPlaceTeams,
@@ -91,6 +92,7 @@ export function ThirdPlaceSelector({
   const [isPending, startTransition] = useTransition()
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const router = useRouter()
 
   function toggle(teamId: string) {
     setSelectedIds((prev) => {
@@ -107,7 +109,12 @@ export function ThirdPlaceSelector({
     startTransition(async () => {
       const result = await upsertThirdPlaceSelections(entryId, Array.from(selectedIds))
       if (result.error) setSaveError(result.error)
-      else setSaved(true)
+      else {
+        setSaved(true)
+        // Re-fetch server data so the parent's confirmed count and the knockout
+        // eligibility set (both derived from the server-provided selections) update.
+        router.refresh()
+      }
     })
   }
 

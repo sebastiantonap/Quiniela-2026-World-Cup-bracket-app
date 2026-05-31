@@ -273,6 +273,7 @@ export const en = {
   'admin.slots.assign': 'Assign',
   'admin.slots.tieVerify': '⚠ Tie — verify the correct finisher',
   'admin.slots.prevNotDecided': 'Previous round not decided',
+  'admin.slots.sameTeam': 'Home and away cannot be the same team',
 
   // ---- admin: standings ----
   'admin.standings.legend': 'Green = qualify automatically | Amber = potential best 3rd place',
