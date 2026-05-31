@@ -107,8 +107,14 @@ export function BracketShell({
     updatePrediction(matchId, { predictedHome: home, predictedAway: away, predictedWinnerTeamId: null })
   }
 
-  function handleKnockoutUpdate(matchId: string, home: number | null, away: number | null, winnerId: string | null) {
-    updatePrediction(matchId, { predictedHome: home, predictedAway: away, predictedWinnerTeamId: winnerId })
+  function handleKnockoutUpdate(matchId: string, home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) {
+    updatePrediction(matchId, {
+      predictedHome: home,
+      predictedAway: away,
+      predictedHomePenalties: homePens,
+      predictedAwayPenalties: awayPens,
+      predictedWinnerTeamId: winnerId,
+    })
   }
 
   return (

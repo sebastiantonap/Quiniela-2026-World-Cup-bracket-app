@@ -9,7 +9,7 @@ interface KnockoutTabProps {
   matches: MatchWithTeams[]
   predictions: Record<string, Prediction>
   isEditable: boolean
-  onUpdate: (matchId: string, home: number | null, away: number | null, winnerId: string | null) => void
+  onUpdate: (matchId: string, home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) => void
   saving: Record<string, boolean>
   eligibility: Record<string, KnockoutEligibility>
 }
@@ -32,7 +32,7 @@ export function KnockoutTab({ matches, predictions, isEditable, onUpdate, saving
           match={match}
           prediction={predictions[match.id]}
           isEditable={isEditable}
-          onUpdate={(home, away, winnerId) => onUpdate(match.id, home, away, winnerId)}
+          onUpdate={(home, away, winnerId, homePens, awayPens) => onUpdate(match.id, home, away, winnerId, homePens, awayPens)}
           saving={saving[match.id]}
           eligibility={eligibility[match.id]}
         />

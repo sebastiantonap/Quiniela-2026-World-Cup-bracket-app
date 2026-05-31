@@ -92,6 +92,8 @@ export interface Database {
           match_id: string
           predicted_home: number | null
           predicted_away: number | null
+          predicted_home_penalties: number | null
+          predicted_away_penalties: number | null
           predicted_winner_team_id: string | null
           points_awarded: number | null
           qualification_gated: boolean

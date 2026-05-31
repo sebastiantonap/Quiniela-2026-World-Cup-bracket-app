@@ -7,6 +7,8 @@ import type { Prediction } from '@/types/app'
 interface PredictionState {
   predictedHome: number | null
   predictedAway: number | null
+  predictedHomePenalties?: number | null
+  predictedAwayPenalties?: number | null
   predictedWinnerTeamId: string | null
 }
 
@@ -31,6 +33,8 @@ export function usePredictions(
         matchId,
         predictedHome: input.predictedHome,
         predictedAway: input.predictedAway,
+        predictedHomePenalties: input.predictedHomePenalties ?? null,
+        predictedAwayPenalties: input.predictedAwayPenalties ?? null,
         predictedWinnerTeamId: input.predictedWinnerTeamId,
       })
 
@@ -74,6 +78,8 @@ export function usePredictions(
           }),
           predicted_home: input.predictedHome,
           predicted_away: input.predictedAway,
+          predicted_home_penalties: input.predictedHomePenalties ?? null,
+          predicted_away_penalties: input.predictedAwayPenalties ?? null,
           predicted_winner_team_id: input.predictedWinnerTeamId,
         } as Prediction,
       }))

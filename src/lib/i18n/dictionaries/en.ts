@@ -211,6 +211,9 @@ export const en = {
   'knockout.teamsTbd': 'Teams TBD',
   'knockout.pickWinnerTitle': 'Pick as winner',
   'knockout.zeroPts': '0 pts',
+  'knockout.pensLabel': 'Pens',
+  'knockout.penaltiesHint': 'Tie — predict the shootout and pick who advances',
+  'knockout.penPredicted': 'Your pens: {home}–{away}',
 
   // ---- third place selector ----
   'third.subtitle': '{count}/12 groups predicted · select the 8 that advance to {round}',

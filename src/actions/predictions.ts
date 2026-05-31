@@ -24,6 +24,8 @@ interface UpsertPredictionInput {
   matchId: string
   predictedHome: number | null
   predictedAway: number | null
+  predictedHomePenalties?: number | null
+  predictedAwayPenalties?: number | null
   predictedWinnerTeamId?: string | null
 }
 
@@ -65,6 +67,8 @@ export async function upsertPrediction(
       match_id: input.matchId,
       predicted_home: input.predictedHome,
       predicted_away: input.predictedAway,
+      predicted_home_penalties: input.predictedHomePenalties ?? null,
+      predicted_away_penalties: input.predictedAwayPenalties ?? null,
       predicted_winner_team_id: input.predictedWinnerTeamId ?? null,
       updated_at: new Date().toISOString(),
     },

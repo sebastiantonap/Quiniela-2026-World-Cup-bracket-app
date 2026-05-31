@@ -11,7 +11,7 @@ interface KnockoutMatchCardProps {
   match: MatchWithTeams
   prediction: Prediction | undefined
   isEditable: boolean
-  onUpdate: (home: number | null, away: number | null, winnerId: string | null) => void
+  onUpdate: (home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) => void
   saving?: boolean
   eligibility: KnockoutEligibility | undefined
 }
@@ -23,6 +23,8 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   const [localWinner, setLocalWinner] = useState<string | null>(
     prediction?.predicted_winner_team_id ?? null
   )
+  const [localHomePen, setLocalHomePen] = useState<number | null>(prediction?.predicted_home_penalties ?? null)
+  const [localAwayPen, setLocalAwayPen] = useState<number | null>(prediction?.predicted_away_penalties ?? null)
 
   const homeTeam = match.home_team
   const awayTeam = match.away_team
@@ -50,18 +52,38 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   // (winner forced, advance points only) and void (no points), lock the inputs out.
   const selectionLocked = showEligibility && (isPartial || isVoid)
 
+  // A knockout match the user predicts as a regulation tie goes to penalties.
+  const isTie = localHome !== null && localAway !== null && localHome === localAway
+
   function handleHomeChange(val: number | null) {
+    // Leaving a tie clears any predicted shootout.
+    const stillTie = val !== null && localAway !== null && val === localAway
+    const hp = stillTie ? localHomePen : null
+    const ap = stillTie ? localAwayPen : null
     setLocalHome(val)
-    onUpdate(val, localAway, localWinner)
+    if (!stillTie) { setLocalHomePen(null); setLocalAwayPen(null) }
+    onUpdate(val, localAway, localWinner, hp, ap)
   }
   function handleAwayChange(val: number | null) {
+    const stillTie = localHome !== null && val !== null && localHome === val
+    const hp = stillTie ? localHomePen : null
+    const ap = stillTie ? localAwayPen : null
     setLocalAway(val)
-    onUpdate(localHome, val, localWinner)
+    if (!stillTie) { setLocalHomePen(null); setLocalAwayPen(null) }
+    onUpdate(localHome, val, localWinner, hp, ap)
   }
   function handleWinnerChange(teamId: string) {
     const newWinner = localWinner === teamId ? null : teamId
     setLocalWinner(newWinner)
-    onUpdate(localHome, localAway, newWinner)
+    onUpdate(localHome, localAway, newWinner, localHomePen, localAwayPen)
+  }
+  function handleHomePenChange(val: number | null) {
+    setLocalHomePen(val)
+    onUpdate(localHome, localAway, localWinner, val, localAwayPen)
+  }
+  function handleAwayPenChange(val: number | null) {
+    setLocalAwayPen(val)
+    onUpdate(localHome, localAway, localWinner, localHomePen, val)
   }
 
   function renderTrailing(teamId: string | undefined, localScore: number | null, onScoreChange: (v: number | null) => void, predicted: number | null | undefined) {
@@ -162,7 +184,27 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         {renderTrailing(awayTeam?.id, localAway, handleAwayChange, prediction?.predicted_away)}
       </div>
 
-      {effectiveEditable && status === 'full' && (
+      {/* Penalty shootout — only when the user predicts a regulation tie. */}
+      {effectiveEditable && !selectionLocked && isTie && (
+        <div className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-amber-700/40 bg-amber-900/10 px-2 py-1.5">
+          <span className="text-[10px] font-semibold uppercase text-amber-400">{t('knockout.pensLabel')}</span>
+          <ScoreInput value={localHomePen} onChange={handleHomePenChange} />
+          <span className="text-slate-500">-</span>
+          <ScoreInput value={localAwayPen} onChange={handleAwayPenChange} />
+        </div>
+      )}
+      {!effectiveEditable && prediction?.predicted_home_penalties != null && prediction?.predicted_away_penalties != null && (
+        <p className="mt-2 text-center text-[11px] text-slate-400">
+          {t('knockout.penPredicted', { home: prediction.predicted_home_penalties, away: prediction.predicted_away_penalties })}
+        </p>
+      )}
+
+      {effectiveEditable && !selectionLocked && isTie && (
+        <p className="mt-2 text-center text-xs text-slate-500">
+          {t('knockout.penaltiesHint')}
+        </p>
+      )}
+      {effectiveEditable && status === 'full' && !isTie && (
         <p className="mt-2 text-center text-xs text-slate-500">
           {t('knockout.selectWinner')}
         </p>

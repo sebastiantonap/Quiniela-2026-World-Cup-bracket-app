@@ -209,6 +209,9 @@ export const es: Dictionary = {
   'knockout.teamsTbd': 'Equipos por definir',
   'knockout.pickWinnerTitle': 'Elegir como ganador',
   'knockout.zeroPts': '0 pts',
+  'knockout.pensLabel': 'Penales',
+  'knockout.penaltiesHint': 'Empate — predice los penales y elige quién avanza',
+  'knockout.penPredicted': 'Tus penales: {home}–{away}',
 
   // ---- third place selector ----
   'third.subtitle': '{count}/12 grupos pronosticados · selecciona los 8 que avanzan a {round}',

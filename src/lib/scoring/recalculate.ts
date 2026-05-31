@@ -73,7 +73,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // ---------- Match predictions ----------
     const { data: matches } = await supabase
       .from('matches')
-      .select('id, home_team_id, away_team_id, home_score, away_score, winner_team_id')
+      .select('id, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id')
       .eq('round_id', roundId)
       .eq('result_confirmed', true)
 
@@ -86,7 +86,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     const { data: predictions } = await supabase
       .from('predictions')
-      .select('id, entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id')
+      .select('id, entry_id, match_id, predicted_home, predicted_away, predicted_home_penalties, predicted_away_penalties, predicted_winner_team_id')
       .in('match_id', matchIds)
 
     if (!predictions) return { error: 'Failed to fetch predictions' }
@@ -167,11 +167,15 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         {
           predicted_home: pred.predicted_home,
           predicted_away: pred.predicted_away,
+          predicted_home_penalties: pred.predicted_home_penalties,
+          predicted_away_penalties: pred.predicted_away_penalties,
           predicted_winner_team_id: pred.predicted_winner_team_id,
         },
         {
           home_score: match.home_score,
           away_score: match.away_score,
+          home_penalties: match.home_penalties,
+          away_penalties: match.away_penalties,
           winner_team_id: match.winner_team_id,
         },
         round.name as RoundName
