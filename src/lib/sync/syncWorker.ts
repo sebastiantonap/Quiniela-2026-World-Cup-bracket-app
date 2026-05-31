@@ -89,6 +89,13 @@ export async function runSync(): Promise<SyncResult> {
 
     if (!localMatches) {
       result.errors.push('Failed to fetch local matches')
+      if (syncRunId) {
+        await supabase.from('sync_runs').update({
+          finished_at: new Date().toISOString(),
+          status: 'error',
+          error_text: 'Failed to fetch local matches',
+        }).eq('id', syncRunId)
+      }
       return result
     }
 

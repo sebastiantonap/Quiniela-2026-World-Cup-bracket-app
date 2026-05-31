@@ -207,6 +207,8 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
     .update({
       home_score: match.api_home_score,
       away_score: match.api_away_score,
+      home_penalties: null,
+      away_penalties: null,
       winner_team_id: winnerTeamId,
       result_confirmed: match.api_status === 'FINISHED',
       is_manual_override: false,
