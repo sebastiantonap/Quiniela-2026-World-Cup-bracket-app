@@ -10,6 +10,7 @@ import { Nav } from '@/components/Nav'
 import { BracketShell } from '@/components/bracket/BracketShell'
 import type { MatchWithTeams, Round, RoundName, Team, Group } from '@/types/app'
 import { ROUND_ORDER } from '@/lib/constants/rounds'
+import { getT } from '@/lib/i18n/server'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -60,6 +61,8 @@ export default async function EntryPage({ params }: PageProps) {
     getThirdPlaceSelectionsForEntry(id),
   ])
 
+  const { t } = await getT()
+
   const rounds: Round[] = roundsData ?? []
   const matches: MatchWithTeams[] = (matchesData ?? []) as unknown as MatchWithTeams[]
   const groups = (groupsData ?? []) as unknown as (Group & { teams: Team[] })[]
@@ -78,7 +81,7 @@ export default async function EntryPage({ params }: PageProps) {
       <main className="mx-auto max-w-7xl px-4 py-8">
         {!isOwner && (
           <div className="mb-4 rounded-xl border border-amber-700/40 bg-amber-900/15 px-4 py-2.5 text-sm text-amber-300">
-            Viewing <span className="font-semibold">{entry.name}</span> — read-only
+            {t('entry.viewing')} <span className="font-semibold">{entry.name}</span> — {t('entry.readOnly')}
           </div>
         )}
 
@@ -86,11 +89,11 @@ export default async function EntryPage({ params }: PageProps) {
           <div className="flex items-center gap-2 text-sm text-slate-500">
             {isOwner ? (
               <a href="/dashboard" className="transition hover:text-slate-300">
-                My Brackets
+                {t('common.myBrackets')}
               </a>
             ) : (
               <a href="/leaderboard" className="transition hover:text-slate-300">
-                Leaderboard
+                {t('leaderboard.title')}
               </a>
             )}
             <span>/</span>
@@ -112,7 +115,7 @@ export default async function EntryPage({ params }: PageProps) {
                 >
                   {e.name}
                   <span className={`ml-2 text-xs tabular-nums ${e.id === id ? 'text-amber-400' : 'text-slate-500'}`}>
-                    {e.total_points} pts
+                    {e.total_points} {t('common.pts')}
                   </span>
                 </Link>
               ))}
@@ -121,7 +124,7 @@ export default async function EntryPage({ params }: PageProps) {
 
           <div className="mt-3 flex items-baseline gap-3">
             <h1 className="text-2xl font-bold text-slate-100">{entry.name}</h1>
-            <span className="text-lg font-semibold text-amber-400">{entry.total_points} pts</span>
+            <span className="text-lg font-semibold text-amber-400">{entry.total_points} {t('common.pts')}</span>
           </div>
         </div>
 

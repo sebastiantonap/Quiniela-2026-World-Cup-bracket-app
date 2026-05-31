@@ -6,6 +6,7 @@ import { ThirdPlaceSelector } from './ThirdPlaceSelector'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import { sortThirdPlaceTeams, computeTieZone } from '@/lib/standings/thirdPlaceRanking'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { MatchWithTeams, Prediction, Team, Group, QualPick } from '@/types/app'
 
 interface GroupStageTabProps {
@@ -39,6 +40,7 @@ export function GroupStageTab({
   unresolvedCount,
   initialThirdPlaceSelections,
 }: GroupStageTabProps) {
+  const t = useT()
   const groupMap = Object.fromEntries(groups.map((g) => [g.name, g]))
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
   const [showThirdPlaceModal, setShowThirdPlaceModal] = useState(false)
@@ -85,16 +87,16 @@ export function GroupStageTab({
           className="w-full flex items-center justify-between rounded-xl border border-amber-700/50 bg-amber-900/20 px-5 py-3 text-sm font-medium text-amber-300 transition hover:bg-amber-900/30"
         >
           <div className="flex items-center gap-2">
-            <span>Best 8 Third-Place Teams</span>
+            <span>{t('best8.title')}</span>
             {hasBoundaryTie && (
               <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
-                tie — resolve manually
+                {t('best8.tieResolve')}
               </span>
             )}
           </div>
           <div className="flex items-center gap-3 text-xs">
             <span className={confirmedCount === 8 ? 'text-green-400 font-semibold' : 'text-slate-400'}>
-              {confirmedCount === 8 ? '✓ 8/8 confirmed' : `${confirmedCount}/8 confirmed`}
+              {confirmedCount === 8 ? t('best8.allConfirmed') : t('best8.confirmed', { count: confirmedCount })}
             </span>
             <span className="text-slate-500">→</span>
           </div>
@@ -103,8 +105,8 @@ export function GroupStageTab({
 
       {unresolvedCount > 0 && isEditable && (
         <div className="rounded-xl border border-amber-700/40 bg-amber-900/20 px-4 py-3 text-sm text-amber-300">
-          <span className="font-semibold">{unresolvedCount} group{unresolvedCount !== 1 ? 's' : ''}</span>
-          {' '}have tied positions that need manual resolution before your bracket is complete.
+          <span className="font-semibold">{t(unresolvedCount === 1 ? 'bracket.groupOne' : 'bracket.groupOther', { count: unresolvedCount })}</span>
+          {' '}{t('bracket.unresolvedSuffix')}
         </div>
       )}
 

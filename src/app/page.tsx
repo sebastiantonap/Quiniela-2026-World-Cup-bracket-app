@@ -1,6 +1,15 @@
 import { MagicLinkForm } from '@/components/auth/MagicLinkForm'
+import { getT } from '@/lib/i18n/server'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { t } = await getT()
+
+  const features = [
+    { icon: '📋', label: t('landing.feature.fillBracket') },
+    { icon: '🏆', label: t('landing.feature.earnPoints') },
+    { icon: '📊', label: t('landing.feature.beatTable') },
+  ]
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
@@ -11,17 +20,13 @@ export default function LandingPage() {
             Quiniela 2026
           </h1>
           <p className="mt-2 text-slate-400">
-            Predict scores for every 2026 FIFA World Cup match and climb the leaderboard.
+            {t('landing.subtitle')}
           </p>
         </div>
 
         {/* Features */}
         <div className="mb-8 grid grid-cols-3 gap-4 text-center text-sm">
-          {[
-            { icon: '📋', label: 'Fill your bracket' },
-            { icon: '🏆', label: 'Earn points' },
-            { icon: '📊', label: 'Beat the table' },
-          ].map(({ icon, label }) => (
+          {features.map(({ icon, label }) => (
             <div
               key={label}
               className="rounded-xl border border-slate-700 bg-slate-800 p-4"
@@ -34,15 +39,15 @@ export default function LandingPage() {
 
         {/* Auth card */}
         <div className="rounded-2xl border border-slate-700 bg-slate-800 p-8">
-          <h2 className="mb-1 text-lg font-semibold text-slate-100">Enter to play</h2>
+          <h2 className="mb-1 text-lg font-semibold text-slate-100">{t('landing.enterToPlay')}</h2>
           <p className="mb-6 text-sm text-slate-400">
-            Just your email — no password, no confirmation needed.
+            {t('landing.enterDesc')}
           </p>
           <MagicLinkForm />
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          Max 2 brackets per email address.
+          {t('landing.maxBrackets')}
         </p>
       </div>
     </main>

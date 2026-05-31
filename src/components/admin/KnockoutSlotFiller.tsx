@@ -10,7 +10,8 @@ import {
   resolveKnockoutSlot,
   type ResolvedSlot,
 } from '@/lib/standings/knockoutSlots'
-import { ROUND_LABELS } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
 
 interface KnockoutSlotFillerProps {
@@ -20,6 +21,7 @@ interface KnockoutSlotFillerProps {
 }
 
 export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFillerProps) {
+  const t = useT()
   const knockoutRounds: RoundName[] = ['round_of_32', 'round_of_16', 'quarterfinals', 'semifinals', 'third_place', 'final']
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
 
@@ -64,7 +66,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
     const homeId = getSlot(match.id, 'home') || null
     const awayId = getSlot(match.id, 'away') || null
     const result = await assignKnockoutTeams(match.id, homeId, awayId)
-    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Assigned!' }))
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.slots.assigned') }))
     return !result.error
   }
 
@@ -110,7 +112,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
-              {ROUND_LABELS[roundName]}
+              {roundLabel(t, roundName)}
             </button>
           )
         })}
@@ -119,11 +121,10 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
       {autoAssignable.length > 0 && (
         <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-800/60 border border-slate-700 px-4 py-2">
           <span className="text-xs text-slate-400">
-            {autoAssignable.length} match{autoAssignable.length !== 1 ? 'es' : ''} can be filled from presets
-            {' '}(tie / undecided slots are skipped).
+            {t(autoAssignable.length === 1 ? 'admin.slots.canFillOne' : 'admin.slots.canFillOther', { count: autoAssignable.length })}
           </span>
           <Button size="sm" loading={bulkLoading} onClick={handleAssignAll}>
-            Assign all presets
+            {t('admin.slots.assignAll')}
           </Button>
         </div>
       )}
@@ -150,7 +151,7 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
 
               {filled ? (
                 <span className="text-sm font-medium text-green-400">
-                  {match.home_team!.name} vs {match.away_team!.name} ✓
+                  {match.home_team!.name} {t('common.vs')} {match.away_team!.name} ✓
                 </span>
               ) : (
                 <div className="flex flex-col items-end gap-1">
@@ -159,15 +160,15 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                       value={getSlot(match.id, 'home')}
                       candidates={r?.home.candidateTeamIds ?? []}
                       teamById={teamById}
-                      placeholder="Home team…"
+                      placeholder={t('admin.slots.homeTeam')}
                       onChange={(v) => setSlot(match.id, 'home', v)}
                     />
-                    <span className="text-slate-500">vs</span>
+                    <span className="text-slate-500">{t('common.vs')}</span>
                     <SlotSelect
                       value={getSlot(match.id, 'away')}
                       candidates={r?.away.candidateTeamIds ?? []}
                       teamById={teamById}
-                      placeholder="Away team…"
+                      placeholder={t('admin.slots.awayTeam')}
                       onChange={(v) => setSlot(match.id, 'away', v)}
                     />
                     <Button
@@ -176,22 +177,22 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
                       disabled={notReady || !getSlot(match.id, 'home') || !getSlot(match.id, 'away')}
                       onClick={() => handleAssign(match)}
                     >
-                      Assign
+                      {t('admin.slots.assign')}
                     </Button>
                   </div>
                   {tie && (
-                    <span className="text-[11px] text-amber-400">⚠ Tie — verify the correct finisher</span>
+                    <span className="text-[11px] text-amber-400">{t('admin.slots.tieVerify')}</span>
                   )}
                   {notReady && (
                     <span className="text-[11px] text-slate-500">
-                      {r?.home.note || r?.away.note || 'Previous round not decided'}
+                      {r?.home.note || r?.away.note || t('admin.slots.prevNotDecided')}
                     </span>
                   )}
                 </div>
               )}
 
               {feedback[match.id] && (
-                <span className={`text-xs ${feedback[match.id] === 'Assigned!' ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`text-xs ${feedback[match.id] === t('admin.slots.assigned') ? 'text-green-400' : 'text-red-400'}`}>
                   {feedback[match.id]}
                 </span>
               )}

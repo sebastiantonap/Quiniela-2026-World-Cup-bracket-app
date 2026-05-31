@@ -1,5 +1,7 @@
 'use client'
 
+import { useT } from '@/lib/i18n/I18nProvider'
+import type { TranslationKey } from '@/lib/i18n/dictionaries/en'
 import type { Team, QualPick } from '@/types/app'
 import type { StandingAmbiguities } from '@/lib/standings/predictedStandings'
 
@@ -14,10 +16,10 @@ interface Props {
   ambiguities?: StandingAmbiguities
 }
 
-const POSITIONS = [
-  { label: '1st', key: 'predicted1st' as const, pts: '4 pts' },
-  { label: '2nd', key: 'predicted2nd' as const, pts: '3 pts' },
-  { label: '3rd', key: 'predicted3rd' as const, pts: '2 pts' },
+const POSITIONS: { labelKey: TranslationKey; key: 'predicted1st' | 'predicted2nd' | 'predicted3rd'; pts: number }[] = [
+  { labelKey: 'ord.first', key: 'predicted1st', pts: 4 },
+  { labelKey: 'ord.second', key: 'predicted2nd', pts: 3 },
+  { labelKey: 'ord.third', key: 'predicted3rd', pts: 2 },
 ]
 
 /** Which position keys are ambiguous given the boundary flags. */
@@ -37,6 +39,7 @@ export function GroupQualificationPicker({
   saving,
   ambiguities,
 }: Props) {
+  const t = useT()
   // Only the user's explicitly-chosen picks count as "taken" — not null positions
   // that are blank because they're ambiguous.
   const selectedIds = new Set(
@@ -48,26 +51,26 @@ export function GroupQualificationPicker({
     <div className="mt-3 border-t border-slate-700 pt-3">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Group Finish Picks
+          {t('picker.title')}
         </p>
         <div className="flex items-center gap-2">
-          {saving && <span className="text-xs text-slate-500">saving…</span>}
+          {saving && <span className="text-xs text-slate-500">{t('common.saving')}</span>}
           {hasPoints && (
             <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-400">
-              +{pick!.pointsAwarded} pts
+              +{pick!.pointsAwarded} {t('common.pts')}
             </span>
           )}
         </div>
       </div>
 
       <div className="space-y-1.5">
-        {POSITIONS.map(({ label, key, pts }) => {
+        {POSITIONS.map(({ labelKey, key, pts }) => {
           const currentVal = pick?.[key] ?? null
           const isAmbig = ambiguities != null && positionAmbiguous(key, ambiguities)
 
           return (
             <div key={key} className="flex items-center gap-2">
-              <span className="w-7 flex-shrink-0 text-xs font-bold text-amber-400">{label}</span>
+              <span className="w-7 flex-shrink-0 text-xs font-bold text-amber-400">{t(labelKey)}</span>
               {isEditable ? (
                 <select
                   value={currentVal ?? ''}
@@ -79,7 +82,7 @@ export function GroupQualificationPicker({
                   }`}
                 >
                   <option value="">
-                    {isAmbig ? '— tied, pick manually —' : '— pick a team —'}
+                    {isAmbig ? t('picker.tiedPickManually') : t('picker.pickTeam')}
                   </option>
                   {teams.map((t) => {
                     // Grey out only teams the user has explicitly placed in another slot
@@ -96,7 +99,7 @@ export function GroupQualificationPicker({
                   {teams.find((t) => t.id === currentVal)?.name ?? '—'}
                 </span>
               )}
-              <span className="w-10 flex-shrink-0 text-right text-xs text-slate-500">{pts}</span>
+              <span className="w-10 flex-shrink-0 text-right text-xs text-slate-500">{pts} {t('common.pts')}</span>
             </div>
           )
         })}

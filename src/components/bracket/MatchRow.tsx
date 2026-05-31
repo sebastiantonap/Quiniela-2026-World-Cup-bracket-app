@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
+import { useT } from '@/lib/i18n/I18nProvider'
 import type { MatchWithTeams, Prediction } from '@/types/app'
 
 interface MatchRowProps {
@@ -15,6 +16,7 @@ interface MatchRowProps {
 }
 
 export function MatchRow({ match, prediction, isEditable, onUpdate, saving, error }: MatchRowProps) {
+  const t = useT()
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
 
@@ -81,7 +83,7 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
 
       {/* Points / status */}
       <div className="flex w-14 flex-shrink-0 items-center justify-end">
-        {saving && <span className="text-xs text-slate-500">saving…</span>}
+        {saving && <span className="text-xs text-slate-500">{t('common.saving')}</span>}
         {hasResult && pts !== null && pts !== undefined && (
           pts > 0
             ? <PointsBadge points={pts} />

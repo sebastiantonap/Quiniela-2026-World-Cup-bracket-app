@@ -3,11 +3,13 @@ import { getEntries } from '@/actions/entries'
 import { Nav } from '@/components/Nav'
 import { CreateEntryButton } from '@/components/dashboard/CreateEntryButton'
 import { EntryCard } from '@/components/dashboard/EntryCard'
+import { getT } from '@/lib/i18n/server'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
   const email = await getSessionEmail()
   const entries = await getEntries()
+  const { t } = await getT()
 
   return (
     <div className="min-h-screen">
@@ -15,7 +17,7 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100">My Brackets</h1>
+            <h1 className="text-2xl font-bold text-slate-100">{t('common.myBrackets')}</h1>
             <p className="mt-1 text-sm text-slate-400">{email}</p>
           </div>
           {entries.length < 2 && <CreateEntryButton />}
@@ -24,9 +26,9 @@ export default async function DashboardPage() {
         {entries.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-slate-700 p-12 text-center">
             <div className="mb-3 text-4xl">📋</div>
-            <h3 className="font-semibold text-slate-100">No brackets yet</h3>
+            <h3 className="font-semibold text-slate-100">{t('dashboard.noBracketsTitle')}</h3>
             <p className="mt-1 text-sm text-slate-400">
-              Create your first bracket to start predicting matches.
+              {t('dashboard.noBracketsDesc')}
             </p>
           </div>
         ) : (
@@ -38,7 +40,7 @@ export default async function DashboardPage() {
             </div>
             {entries.length >= 2 && (
               <p className="mt-4 text-center text-sm text-slate-500">
-                Maximum 2 brackets per account reached.
+                {t('dashboard.maxReached')}
               </p>
             )}
           </>
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
             href="/leaderboard"
             className="text-sm text-amber-400 transition hover:text-amber-300 hover:underline"
           >
-            View leaderboard →
+            {t('dashboard.viewLeaderboard')}
           </Link>
         </div>
       </main>

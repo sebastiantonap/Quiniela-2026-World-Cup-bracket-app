@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { saveMatchResult, clearMatchResult } from '@/actions/admin/results'
 import { Button } from '@/components/ui/Button'
 import { buildSlotContext, resolveSlotTeamId } from '@/lib/standings/knockoutSlots'
-import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
+import { ROUND_ORDER } from '@/lib/constants/rounds'
+import { useT } from '@/lib/i18n/I18nProvider'
+import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Round, RoundName, Team } from '@/types/app'
 
 interface ResultsEntryProps {
@@ -17,6 +19,7 @@ interface ResultsEntryProps {
 type ScoreState = { home: string; away: string; hpen: string; apen: string }
 
 export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
+  const t = useT()
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
   const [selectedRound, setSelectedRound] = useState<RoundName>('group_stage')
   const [scores, setScores] = useState<Record<string, ScoreState>>({})
@@ -59,12 +62,14 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
   async function handleClear(match: MatchWithTeams) {
     const homeName = sideDisplay(match.home_team, match.placeholder_home)
     const awayName = sideDisplay(match.away_team, match.placeholder_away)
-    const confirmed = window.confirm(`Clear result for match ${match.match_number}: ${homeName} vs ${awayName}?`)
+    const confirmed = window.confirm(
+      t('admin.results.clearConfirm', { number: match.match_number, home: homeName, away: awayName })
+    )
     if (!confirmed) return
 
     setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: true }))
     const result = await clearMatchResult(match.id)
-    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Result cleared' }))
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.results.resultCleared') }))
     setLoading((prev) => ({ ...prev, [`clear-${match.id}`]: false }))
     router.refresh()
   }
@@ -74,7 +79,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
     const home = parseInt(s?.home ?? '', 10)
     const away = parseInt(s?.away ?? '', 10)
     if (isNaN(home) || isNaN(away)) {
-      setFeedback((prev) => ({ ...prev, [match.id]: 'Enter valid scores' }))
+      setFeedback((prev) => ({ ...prev, [match.id]: t('admin.results.enterValidScores') }))
       return
     }
 
@@ -82,18 +87,18 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
     let apen: number | null = null
     if (isKnockout) {
       if (!match.home_team_id || !match.away_team_id) {
-        setFeedback((prev) => ({ ...prev, [match.id]: 'Assign both teams first (Knockout Slots tab)' }))
+        setFeedback((prev) => ({ ...prev, [match.id]: t('admin.results.assignBothTeams') }))
         return
       }
       if (home === away) {
         hpen = parseInt(s?.hpen ?? '', 10)
         apen = parseInt(s?.apen ?? '', 10)
         if (isNaN(hpen) || isNaN(apen)) {
-          setFeedback((prev) => ({ ...prev, [match.id]: 'Tied — enter penalty scores' }))
+          setFeedback((prev) => ({ ...prev, [match.id]: t('admin.results.tiedEnterPens') }))
           return
         }
         if (hpen === apen) {
-          setFeedback((prev) => ({ ...prev, [match.id]: 'Penalty scores cannot be equal' }))
+          setFeedback((prev) => ({ ...prev, [match.id]: t('admin.results.pensNotEqual') }))
           return
         }
       }
@@ -101,7 +106,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
 
     setLoading((prev) => ({ ...prev, [match.id]: true }))
     const result = await saveMatchResult(match.id, home, away, hpen, apen)
-    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? 'Saved!' }))
+    setFeedback((prev) => ({ ...prev, [match.id]: result.error ?? t('admin.results.saved') }))
     setLoading((prev) => ({ ...prev, [match.id]: false }))
     router.refresh()
   }
@@ -123,7 +128,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
-              {ROUND_LABELS[roundName]}
+              {roundLabel(t, roundName)}
             </button>
           )
         })}
@@ -161,7 +166,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
             >
               <span className="w-6 text-xs text-slate-500">{match.match_number}</span>
               <span className="flex-1 min-w-0 text-sm font-medium text-slate-200 truncate">
-                {homeLabel} vs {awayLabel}
+                {homeLabel} {t('common.vs')} {awayLabel}
               </span>
 
               {match.result_confirmed && (
@@ -169,7 +174,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                   {match.home_score}–{match.away_score}
                   {match.home_penalties !== null && match.away_penalties !== null && (
                     <span className="ml-1 text-xs font-medium text-green-500/80">
-                      ({match.home_penalties}–{match.away_penalties} pens)
+                      {t('admin.results.pensSuffix', { home: match.home_penalties, away: match.away_penalties })}
                     </span>
                   )}
                 </span>
@@ -198,7 +203,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
 
                 {showPens && (
                   <div className="flex items-center gap-1 rounded-lg border border-amber-700/50 bg-amber-900/10 px-2 py-1">
-                    <span className="text-[10px] font-semibold uppercase text-amber-400">pens</span>
+                    <span className="text-[10px] font-semibold uppercase text-amber-400">{t('admin.results.pens')}</span>
                     <input
                       type="number"
                       min={0}
@@ -222,7 +227,7 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                 )}
 
                 <Button size="sm" loading={loading[match.id]} onClick={() => handleSave(match)}>
-                  Save
+                  {t('common.save')}
                 </Button>
                 {match.result_confirmed && (
                   <Button
@@ -232,19 +237,19 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
                     onClick={() => handleClear(match)}
                     className="text-red-400 hover:text-red-300"
                   >
-                    ✕ clear
+                    {t('admin.results.clear')}
                   </Button>
                 )}
               </div>
 
               {winnerLabel && (
                 <span className="text-xs text-slate-400">
-                  Winner: <span className="font-semibold text-slate-200">{winnerLabel}</span>
+                  {t('admin.results.winner')} <span className="font-semibold text-slate-200">{winnerLabel}</span>
                 </span>
               )}
 
               {feedback[match.id] && (
-                <span className={`text-xs ${feedback[match.id] === 'Saved!' || feedback[match.id] === 'Result cleared' ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`text-xs ${feedback[match.id] === t('admin.results.saved') || feedback[match.id] === t('admin.results.resultCleared') ? 'text-green-400' : 'text-red-400'}`}>
                   {feedback[match.id]}
                 </span>
               )}

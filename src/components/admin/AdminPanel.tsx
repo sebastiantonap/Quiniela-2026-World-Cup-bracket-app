@@ -6,6 +6,8 @@ import { ResultsEntry } from './ResultsEntry'
 import { KnockoutSlotFiller } from './KnockoutSlotFiller'
 import { GroupStandings } from './GroupStandings'
 import { UserManager } from './UserManager'
+import { useT } from '@/lib/i18n/I18nProvider'
+import type { TranslationKey } from '@/lib/i18n/dictionaries/en'
 import type { MatchWithTeams, Round, Team } from '@/types/app'
 import type { AdminUserRow } from '@/actions/admin/users'
 
@@ -19,14 +21,15 @@ interface AdminPanelProps {
 }
 
 export function AdminPanel({ rounds, matches, teams, users }: AdminPanelProps) {
+  const t = useT()
   const [activeTab, setActiveTab] = useState<AdminTab>('rounds')
 
-  const tabs: { id: AdminTab; label: string }[] = [
-    { id: 'rounds', label: 'Round Manager' },
-    { id: 'results', label: 'Enter Results' },
-    { id: 'slots', label: 'Knockout Slots' },
-    { id: 'standings', label: 'Group Standings' },
-    { id: 'users', label: 'Users' },
+  const tabs: { id: AdminTab; labelKey: TranslationKey }[] = [
+    { id: 'rounds', labelKey: 'admin.tab.rounds' },
+    { id: 'results', labelKey: 'admin.tab.results' },
+    { id: 'slots', labelKey: 'admin.tab.slots' },
+    { id: 'standings', labelKey: 'admin.tab.standings' },
+    { id: 'users', labelKey: 'admin.tab.users' },
   ]
 
   return (
@@ -36,7 +39,7 @@ export function AdminPanel({ rounds, matches, teams, users }: AdminPanelProps) {
           href="/api/admin/export"
           className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm text-slate-200 transition-colors"
         >
-          ↓ Export XLSX
+          {t('admin.exportXlsx')}
         </a>
       </div>
       <div className="mb-6 flex gap-1 rounded-xl bg-slate-800 p-1 w-fit border border-slate-700">
@@ -50,7 +53,7 @@ export function AdminPanel({ rounds, matches, teams, users }: AdminPanelProps) {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
