@@ -50,6 +50,18 @@ export default async function AdminPage() {
   const matches = (matchesData ?? []) as unknown as MatchWithTeams[]
   const hasMatchMapping = matches.some((m) => m.fd_match_id !== null)
 
+  // Current drift = matches where the manual override disagrees with the
+  // latest API snapshot. Source of truth is the `matches` row, not historical
+  // sync_runs counters. Keep this definition in sync with `hasDrift` in
+  // src/lib/sync/syncWorker.ts.
+  const driftCount = matches.filter(
+    (m) =>
+      m.is_manual_override &&
+      m.api_home_score !== null &&
+      m.api_away_score !== null &&
+      (m.api_home_score !== m.home_score || m.api_away_score !== m.away_score)
+  ).length
+
   return (
     <div className="min-h-screen">
       <Nav />
@@ -69,6 +81,7 @@ export default async function AdminPage() {
           changeLogs={changeLogsData ?? []}
           hasTeamMapping={hasTeamMapping}
           hasMatchMapping={hasMatchMapping}
+          driftCount={driftCount}
         />
       </main>
     </div>

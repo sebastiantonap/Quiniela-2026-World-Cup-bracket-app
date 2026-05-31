@@ -11,9 +11,10 @@ interface SyncPanelProps {
   syncRuns: SyncRun[]
   hasTeamMapping: boolean
   hasMatchMapping: boolean
+  driftCount: number
 }
 
-export function SyncPanel({ syncRuns, hasTeamMapping, hasMatchMapping }: SyncPanelProps) {
+export function SyncPanel({ syncRuns, hasTeamMapping, hasMatchMapping, driftCount }: SyncPanelProps) {
   const t = useT()
   const [syncing, setSyncing] = useState(false)
   const [seedingTeams, setSeedingTeams] = useState(false)
@@ -84,7 +85,6 @@ export function SyncPanel({ syncRuns, hasTeamMapping, hasMatchMapping }: SyncPan
   }
 
   const latestRun = syncRuns[0]
-  const driftCount = syncRuns.reduce((sum, r) => sum + (r.drift_count ?? 0), 0)
 
   return (
     <div className="space-y-6">

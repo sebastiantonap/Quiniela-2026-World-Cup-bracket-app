@@ -28,9 +28,10 @@ interface AdminPanelProps {
   changeLogs: ChangeLogRow[]
   hasTeamMapping: boolean
   hasMatchMapping: boolean
+  driftCount: number
 }
 
-export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs, hasTeamMapping, hasMatchMapping }: AdminPanelProps) {
+export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs, hasTeamMapping, hasMatchMapping, driftCount }: AdminPanelProps) {
   const t = useT()
   const [activeTab, setActiveTab] = useState<AdminTab>('rounds')
 
@@ -80,7 +81,7 @@ export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs
       {activeTab === 'results' && <ResultsEntry rounds={rounds} matches={matches} teams={teams} />}
       {activeTab === 'slots' && <KnockoutSlotFiller rounds={rounds} matches={matches} teams={teams} />}
       {activeTab === 'standings' && <GroupStandings matches={matches} teams={teams} />}
-      {activeTab === 'sync' && <SyncPanel syncRuns={syncRuns} hasTeamMapping={hasTeamMapping} hasMatchMapping={hasMatchMapping} />}
+      {activeTab === 'sync' && <SyncPanel syncRuns={syncRuns} hasTeamMapping={hasTeamMapping} hasMatchMapping={hasMatchMapping} driftCount={driftCount} />}
       {activeTab === 'history' && <ChangeHistory logs={changeLogs} matchNumbers={matchNumbers} />}
       {activeTab === 'users' && <UserManager users={users} />}
     </div>
