@@ -23,6 +23,12 @@ export async function Nav() {
             Leaderboard
           </Link>
           <Link
+            href="/rules"
+            className="text-sm text-slate-400 transition hover:text-amber-400"
+          >
+            Rules
+          </Link>
+          <Link
             href="/dashboard"
             className="text-sm text-slate-400 transition hover:text-slate-100"
           >

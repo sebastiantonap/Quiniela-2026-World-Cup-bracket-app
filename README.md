@@ -13,15 +13,21 @@ An interactive bracket challenge for the 2026 FIFA World Cup. Users predict scor
 
 ## Scoring System
 
+Points come from match-score predictions (correct outcome + exact-score bonus),
+group qualification picks, and best-8 third-place picks. Knockout matches are
+gated by eligibility (you only score a match if you correctly advanced its
+teams). The full, always-current rules live on the in-app **Rules** page
+(`/rules`), rendered from the constants in `src/lib/constants/rounds.ts`.
+
 | Round         | Correct Outcome | + Exact Score | Max |
 |---------------|:--------------:|:-------------:|:---:|
-| Group Stage   | 1 pt           | +2 pts        | 3   |
-| Round of 32   | 2 pts          | +3 pts        | 5   |
-| Round of 16   | 4 pts          | +5 pts        | 9   |
-| Quarterfinals | 6 pts          | +7 pts        | 13  |
-| Semifinals    | 8 pts          | +9 pts        | 17  |
-| 3rd Place     | 3 pts          | +4 pts        | 7   |
-| Final         | 10 pts         | +11 pts       | 21  |
+| Group Stage   | 2 pts          | +2 pts        | 4   |
+| Round of 32   | 3 pts          | +2 pts        | 5   |
+| Round of 16   | 5 pts          | +2 pts        | 7   |
+| Quarterfinals | 7 pts          | +2 pts        | 9   |
+| Semifinals    | 9 pts          | +4 pts        | 13  |
+| 3rd Place     | 11 pts         | +4 pts        | 15  |
+| Final         | 16 pts         | +4 pts        | 20  |
 
 ## Tech Stack
 
