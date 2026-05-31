@@ -79,7 +79,12 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
   const autoAssignable = roundMatches.filter((m) => {
     if (m.home_team && m.away_team) return false
     const r = resolved[m.id]
-    return r && r.home.ready && r.away.ready && !r.home.isTie && !r.away.isTie
+    return (
+      r &&
+      r.home.ready && r.away.ready &&
+      !r.home.isTie && !r.away.isTie &&
+      !!r.home.presetTeamId && !!r.away.presetTeamId
+    )
   })
 
   async function handleAssignAll() {

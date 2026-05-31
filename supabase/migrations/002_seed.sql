@@ -196,41 +196,43 @@ INSERT INTO matches (match_number, round_id, group_id, home_team_id, away_team_i
 -- Admin fills team slots after each round completes.
 -- ============================================================
 
--- ROUND OF 32 (73–88)
+-- ROUND OF 32 (73–88) — official FIFA 2026 bracket.
+-- Best-3rd slots carry the allowed source groups; the exact third-placed team is
+-- determined by FIFA's qualifying-combination table and assigned by the admin.
 INSERT INTO matches (match_number, round_id, placeholder_home, placeholder_away) VALUES
-  (73,  'b1000000-0000-0000-0000-000000000002', '1st Group A', '2nd Group B'),
-  (74,  'b1000000-0000-0000-0000-000000000002', '1st Group C', '2nd Group D'),
-  (75,  'b1000000-0000-0000-0000-000000000002', '1st Group E', '2nd Group F'),
-  (76,  'b1000000-0000-0000-0000-000000000002', '1st Group G', '2nd Group H'),
-  (77,  'b1000000-0000-0000-0000-000000000002', '1st Group B', '2nd Group A'),
-  (78,  'b1000000-0000-0000-0000-000000000002', '1st Group D', '2nd Group C'),
-  (79,  'b1000000-0000-0000-0000-000000000002', '1st Group F', '2nd Group E'),
-  (80,  'b1000000-0000-0000-0000-000000000002', '1st Group H', '2nd Group G'),
-  (81,  'b1000000-0000-0000-0000-000000000002', '1st Group I', '2nd Group J'),
-  (82,  'b1000000-0000-0000-0000-000000000002', '1st Group K', '2nd Group L'),
-  (83,  'b1000000-0000-0000-0000-000000000002', '1st Group J', '2nd Group I'),
-  (84,  'b1000000-0000-0000-0000-000000000002', '1st Group L', '2nd Group K'),
-  (85,  'b1000000-0000-0000-0000-000000000002', 'Best 3rd #1', 'Best 3rd #2'),
-  (86,  'b1000000-0000-0000-0000-000000000002', 'Best 3rd #3', 'Best 3rd #4'),
-  (87,  'b1000000-0000-0000-0000-000000000002', 'Best 3rd #5', 'Best 3rd #6'),
-  (88,  'b1000000-0000-0000-0000-000000000002', 'Best 3rd #7', 'Best 3rd #8');
+  (73,  'b1000000-0000-0000-0000-000000000002', '2nd Group A', '2nd Group B'),
+  (74,  'b1000000-0000-0000-0000-000000000002', '1st Group E', 'Best 3rd (A/B/C/D/F)'),
+  (75,  'b1000000-0000-0000-0000-000000000002', '1st Group F', '2nd Group C'),
+  (76,  'b1000000-0000-0000-0000-000000000002', '1st Group C', '2nd Group F'),
+  (77,  'b1000000-0000-0000-0000-000000000002', '1st Group I', 'Best 3rd (C/D/F/G/H)'),
+  (78,  'b1000000-0000-0000-0000-000000000002', '2nd Group E', '2nd Group I'),
+  (79,  'b1000000-0000-0000-0000-000000000002', '1st Group A', 'Best 3rd (C/E/F/H/I)'),
+  (80,  'b1000000-0000-0000-0000-000000000002', '1st Group L', 'Best 3rd (E/H/I/J/K)'),
+  (81,  'b1000000-0000-0000-0000-000000000002', '1st Group D', 'Best 3rd (B/E/F/I/J)'),
+  (82,  'b1000000-0000-0000-0000-000000000002', '1st Group G', 'Best 3rd (A/E/H/I/J)'),
+  (83,  'b1000000-0000-0000-0000-000000000002', '2nd Group K', '2nd Group L'),
+  (84,  'b1000000-0000-0000-0000-000000000002', '1st Group H', '2nd Group J'),
+  (85,  'b1000000-0000-0000-0000-000000000002', '1st Group B', 'Best 3rd (E/F/G/I/J)'),
+  (86,  'b1000000-0000-0000-0000-000000000002', '1st Group J', '2nd Group H'),
+  (87,  'b1000000-0000-0000-0000-000000000002', '1st Group K', 'Best 3rd (D/E/I/J/L)'),
+  (88,  'b1000000-0000-0000-0000-000000000002', '2nd Group D', '2nd Group G');
 
--- ROUND OF 16 (89–96)
+-- ROUND OF 16 (89–96) — official FIFA 2026 winner pairings.
 INSERT INTO matches (match_number, round_id, placeholder_home, placeholder_away) VALUES
-  (89,  'b1000000-0000-0000-0000-000000000003', 'Winner M73', 'Winner M74'),
-  (90,  'b1000000-0000-0000-0000-000000000003', 'Winner M75', 'Winner M76'),
-  (91,  'b1000000-0000-0000-0000-000000000003', 'Winner M77', 'Winner M78'),
+  (89,  'b1000000-0000-0000-0000-000000000003', 'Winner M73', 'Winner M75'),
+  (90,  'b1000000-0000-0000-0000-000000000003', 'Winner M74', 'Winner M77'),
+  (91,  'b1000000-0000-0000-0000-000000000003', 'Winner M76', 'Winner M78'),
   (92,  'b1000000-0000-0000-0000-000000000003', 'Winner M79', 'Winner M80'),
-  (93,  'b1000000-0000-0000-0000-000000000003', 'Winner M81', 'Winner M82'),
-  (94,  'b1000000-0000-0000-0000-000000000003', 'Winner M83', 'Winner M84'),
-  (95,  'b1000000-0000-0000-0000-000000000003', 'Winner M85', 'Winner M86'),
-  (96,  'b1000000-0000-0000-0000-000000000003', 'Winner M87', 'Winner M88');
+  (93,  'b1000000-0000-0000-0000-000000000003', 'Winner M83', 'Winner M84'),
+  (94,  'b1000000-0000-0000-0000-000000000003', 'Winner M81', 'Winner M82'),
+  (95,  'b1000000-0000-0000-0000-000000000003', 'Winner M86', 'Winner M88'),
+  (96,  'b1000000-0000-0000-0000-000000000003', 'Winner M85', 'Winner M87');
 
--- QUARTERFINALS (97–100)
+-- QUARTERFINALS (97–100) — official FIFA 2026 winner pairings.
 INSERT INTO matches (match_number, round_id, placeholder_home, placeholder_away) VALUES
   (97,  'b1000000-0000-0000-0000-000000000004', 'Winner M89', 'Winner M90'),
-  (98,  'b1000000-0000-0000-0000-000000000004', 'Winner M91', 'Winner M92'),
-  (99,  'b1000000-0000-0000-0000-000000000004', 'Winner M93', 'Winner M94'),
+  (98,  'b1000000-0000-0000-0000-000000000004', 'Winner M93', 'Winner M94'),
+  (99,  'b1000000-0000-0000-0000-000000000004', 'Winner M91', 'Winner M92'),
   (100, 'b1000000-0000-0000-0000-000000000004', 'Winner M95', 'Winner M96');
 
 -- SEMIFINALS (101–102)

@@ -6,13 +6,13 @@ import { GROUP_LETTERS } from '@/lib/constants/rounds'
  * A knockout match slot ("home" / "away") carries a placeholder string that encodes which
  * earlier result feeds it. These are the shapes used in the seed:
  *   "1st Group A" / "2nd Group B"            → group finisher
- *   "Best 3rd #1".."Best 3rd #8"             → confirmed best-third teams
+ *   "Best 3rd (A/B/C/D/F)"                   → a best-third team from one of the allowed groups
  *   "Winner M73"                             → winner of an absolute match number
  *   "Winner QF1" / "Winner SF2" / "Loser SF1"→ winner/loser of the Nth match in QF/SF round
  */
 export type SlotSource =
   | { type: 'group'; position: 1 | 2; group: string }
-  | { type: 'best_third'; rank: number }
+  | { type: 'best_third'; allowedGroups: string[] }
   | { type: 'match_winner'; matchNumber: number }
   | { type: 'round_rel'; round: 'QF' | 'SF'; index: number; want: 'winner' | 'loser' }
   | { type: 'unknown' }
@@ -30,6 +30,8 @@ export interface SlotContext {
   groupStandings: Record<string, TeamStanding[]>
   /** the confirmed best-third teams, ranked (length 8 once confirmed) */
   bestThirds: TeamStanding[]
+  /** third-placed team id → its group letter (for best-3rd group constraints) */
+  bestThirdGroups: Map<string, string>
   /** absolute match_number → match */
   matchByNumber: Map<number, MatchWithTeams>
   /** quarterfinal matches sorted by match_number (QF1..QF4) */
@@ -45,8 +47,11 @@ export function parseSlotPlaceholder(placeholder: string | null): SlotSource {
   let m = p.match(/^(1st|2nd)\s+Group\s+([A-L])$/i)
   if (m) return { type: 'group', position: m[1].toLowerCase() === '1st' ? 1 : 2, group: m[2].toUpperCase() }
 
-  m = p.match(/^Best\s+3rd\s+#(\d+)$/i)
-  if (m) return { type: 'best_third', rank: parseInt(m[1], 10) }
+  m = p.match(/^Best\s+3rd\s+\(([A-L/\s]+)\)$/i)
+  if (m) {
+    const allowedGroups = m[1].split('/').map((g) => g.trim().toUpperCase()).filter(Boolean)
+    return { type: 'best_third', allowedGroups }
+  }
 
   m = p.match(/^Winner\s+M(\d+)$/i)
   if (m) return { type: 'match_winner', matchNumber: parseInt(m[1], 10) }
@@ -92,6 +97,7 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
 
   const groupStandings: Record<string, TeamStanding[]> = {}
   const thirds: TeamStanding[] = []
+  const bestThirdGroups = new Map<string, string>()
   for (const letter of GROUP_LETTERS) {
     const groupTeams = teams.filter(
       (t) =>
@@ -104,7 +110,10 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
     const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
     const standings = computeGroupStandings(groupTeams, groupMatches)
     groupStandings[letter] = standings
-    if (standings[2]) thirds.push(standings[2])
+    if (standings[2]) {
+      thirds.push(standings[2])
+      bestThirdGroups.set(standings[2].team.id, letter)
+    }
   }
 
   const bestThirds = thirds
@@ -121,7 +130,7 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
   const qfMatches = matches.filter((m) => m.round?.name === 'quarterfinals').sort(byNumber)
   const sfMatches = matches.filter((m) => m.round?.name === 'semifinals').sort(byNumber)
 
-  return { groupStandings, bestThirds, matchByNumber, qfMatches, sfMatches }
+  return { groupStandings, bestThirds, bestThirdGroups, matchByNumber, qfMatches, sfMatches }
 }
 
 /** Convenience: the team id a placeholder currently resolves to, or null if undecided. */
@@ -149,12 +158,16 @@ export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext): Resol
     }
 
     case 'best_third': {
-      const candidateTeamIds = ctx.bestThirds.map((s) => s.team.id)
       if (ctx.bestThirds.length < 8) {
-        return { presetTeamId: null, candidateTeamIds, isTie: false, ready: false, note: 'Confirm 8 best thirds first' }
+        return { presetTeamId: null, candidateTeamIds: [], isTie: false, ready: false, note: 'Confirm 8 best thirds first' }
       }
+      // Limit to confirmed thirds from the groups this slot is allowed to draw from.
+      // The exact team comes from FIFA's combination table, so the admin assigns it.
+      const candidateTeamIds = ctx.bestThirds
+        .filter((s) => source.allowedGroups.includes(ctx.bestThirdGroups.get(s.team.id) ?? ''))
+        .map((s) => s.team.id)
       return {
-        presetTeamId: ctx.bestThirds[source.rank - 1]?.team.id ?? null,
+        presetTeamId: candidateTeamIds.length === 1 ? candidateTeamIds[0] : null,
         candidateTeamIds,
         isTie: false,
         ready: true,
