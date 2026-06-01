@@ -1,6 +1,7 @@
 import type { MatchWithTeams, Team, TeamStanding } from '@/types/app'
 import { computeGroupStandings, isStandingsTie } from './groupStandings'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
+import { THIRD_PLACE_MATRIX } from '@/lib/bracket/thirdPlaceMatrix'
 
 /**
  * A knockout match slot ("home" / "away") carries a placeholder string that encodes which
@@ -28,10 +29,14 @@ export interface ResolvedSlot {
 export interface SlotContext {
   /** group letter → standings sorted by Pts → GD → GF (computeGroupStandings) */
   groupStandings: Record<string, TeamStanding[]>
+  /** true when every group-stage match for that group is result_confirmed */
+  groupStandingsComplete: Record<string, boolean>
   /** the confirmed best-third teams, ranked (length 8 once confirmed) */
   bestThirds: TeamStanding[]
   /** third-placed team id → its group letter (for best-3rd group constraints) */
   bestThirdGroups: Map<string, string>
+  /** sorted 8-letter key e.g. "ABCDFHIK", or null if fewer than 8 thirds confirmed */
+  bestThirdScenarioKey: string | null
   /** absolute match_number → match */
   matchByNumber: Map<number, MatchWithTeams>
   /** quarterfinal matches sorted by match_number (QF1..QF4) */
@@ -96,6 +101,7 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
 
   const groupStandings: Record<string, TeamStanding[]> = {}
+  const groupStandingsComplete: Record<string, boolean> = {}
   const thirds: TeamStanding[] = []
   const bestThirdGroups = new Map<string, string>()
   for (const letter of GROUP_LETTERS) {
@@ -110,6 +116,7 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
     const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
     const standings = computeGroupStandings(groupTeams, groupMatches)
     groupStandings[letter] = standings
+    groupStandingsComplete[letter] = groupMatches.length > 0 && groupMatches.every((m) => m.result_confirmed)
     if (standings[2]) {
       thirds.push(standings[2])
       bestThirdGroups.set(standings[2].team.id, letter)
@@ -125,33 +132,44 @@ export function buildSlotContext(matches: MatchWithTeams[], teams: Team[]): Slot
       return a.team.name.localeCompare(b.team.name)
     })
 
+  const qualifiedGroups = bestThirds
+    .map((s) => bestThirdGroups.get(s.team.id))
+    .filter((g): g is string => !!g)
+    .sort()
+  const bestThirdScenarioKey = qualifiedGroups.length === 8 ? qualifiedGroups.join('') : null
+
   const matchByNumber = new Map(matches.map((m) => [m.match_number, m]))
   const byNumber = (a: MatchWithTeams, b: MatchWithTeams) => a.match_number - b.match_number
   const qfMatches = matches.filter((m) => m.round?.name === 'quarterfinals').sort(byNumber)
   const sfMatches = matches.filter((m) => m.round?.name === 'semifinals').sort(byNumber)
 
-  return { groupStandings, bestThirds, bestThirdGroups, matchByNumber, qfMatches, sfMatches }
+  return { groupStandings, groupStandingsComplete, bestThirds, bestThirdGroups, bestThirdScenarioKey, matchByNumber, qfMatches, sfMatches }
 }
 
 /** Convenience: the team id a placeholder currently resolves to, or null if undecided. */
-export function resolveSlotTeamId(placeholder: string | null, ctx: SlotContext): string | null {
-  return resolveKnockoutSlot(parseSlotPlaceholder(placeholder), ctx).presetTeamId
+export function resolveSlotTeamId(placeholder: string | null, ctx: SlotContext, matchNumber?: number): string | null {
+  return resolveKnockoutSlot(parseSlotPlaceholder(placeholder), ctx, matchNumber).presetTeamId
 }
 
-export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext): ResolvedSlot {
+export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext, matchNumber?: number): ResolvedSlot {
   switch (source.type) {
     case 'group': {
       const standings = ctx.groupStandings[source.group] ?? []
       if (standings.length < 2) return { ...EMPTY, note: `Group ${source.group} standings incomplete` }
+      if (!ctx.groupStandingsComplete[source.group]) {
+        return { ...EMPTY, note: `Group ${source.group} results not fully confirmed` }
+      }
       const idx = source.position - 1
       const here = standings[idx]
-      const candidateTeamIds = standings.map((s) => s.team.id)
-      // A swap into this slot is possible only if it's fully tied with an adjacent finisher.
       const tieAbove = idx > 0 && isStandingsTie(here, standings[idx - 1])
       const tieBelow = idx < standings.length - 1 && isStandingsTie(here, standings[idx + 1])
+      const candidates = new Set<string>()
+      candidates.add(here.team.id)
+      if (tieAbove) candidates.add(standings[idx - 1].team.id)
+      if (tieBelow) candidates.add(standings[idx + 1].team.id)
       return {
         presetTeamId: here.team.id,
-        candidateTeamIds,
+        candidateTeamIds: Array.from(candidates),
         isTie: tieAbove || tieBelow,
         ready: true,
       }
@@ -161,8 +179,26 @@ export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext): Resol
       if (ctx.bestThirds.length < 8) {
         return { presetTeamId: null, candidateTeamIds: [], isTie: false, ready: false, note: 'Confirm 8 best thirds first' }
       }
-      // Limit to confirmed thirds from the groups this slot is allowed to draw from.
-      // The exact team comes from FIFA's combination table, so the admin assigns it.
+      // Look up the FIFA combination table when scenario + match number are known.
+      const scenarioRow = ctx.bestThirdScenarioKey
+        ? THIRD_PLACE_MATRIX[ctx.bestThirdScenarioKey]
+        : null
+      const assignedGroup = matchNumber != null ? scenarioRow?.[matchNumber] ?? null : null
+
+      if (assignedGroup) {
+        const presetTeam = ctx.bestThirds.find(
+          (s) => ctx.bestThirdGroups.get(s.team.id) === assignedGroup
+        )
+        return {
+          presetTeamId: presetTeam?.team.id ?? null,
+          candidateTeamIds: presetTeam ? [presetTeam.team.id] : [],
+          isTie: false,
+          ready: !!presetTeam,
+          note: presetTeam ? undefined : `3rd of Group ${assignedGroup} not found`,
+        }
+      }
+
+      // Fallback: filter by allowed groups, admin picks manually.
       const candidateTeamIds = ctx.bestThirds
         .filter((s) => source.allowedGroups.includes(ctx.bestThirdGroups.get(s.team.id) ?? ''))
         .map((s) => s.team.id)
@@ -170,7 +206,8 @@ export function resolveKnockoutSlot(source: SlotSource, ctx: SlotContext): Resol
         presetTeamId: candidateTeamIds.length === 1 ? candidateTeamIds[0] : null,
         candidateTeamIds,
         isTie: false,
-        ready: true,
+        ready: candidateTeamIds.length > 0,
+        note: !scenarioRow && ctx.bestThirdScenarioKey ? 'Scenario not found in matrix' : undefined,
       }
     }
 

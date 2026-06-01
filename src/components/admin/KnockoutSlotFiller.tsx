@@ -47,8 +47,8 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
     const out: Record<string, { home: ResolvedSlot; away: ResolvedSlot }> = {}
     for (const m of roundMatches) {
       out[m.id] = {
-        home: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_home), ctx),
-        away: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_away), ctx),
+        home: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_home), ctx, m.match_number),
+        away: resolveKnockoutSlot(parseSlotPlaceholder(m.placeholder_away), ctx, m.match_number),
       }
     }
     return out
