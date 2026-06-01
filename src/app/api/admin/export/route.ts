@@ -75,7 +75,10 @@ async function fetchAllRows<T>(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1)
-    if (error || !data || data.length === 0) break
+    if (error) {
+      throw new Error(`Supabase pagination error at offset ${from}: ${JSON.stringify(error)}`)
+    }
+    if (!data || data.length === 0) break
     all.push(...data)
     if (data.length < PAGE_SIZE) break
     from += PAGE_SIZE
@@ -92,6 +95,8 @@ export async function GET() {
   }
 
   const admin = getSupabaseAdminClient()
+
+  try {
 
   // Fetch all data in parallel.  Small tables use a single query; large tables
   // (predictions, qualifications) are paginated to avoid the default row cap.
@@ -463,4 +468,9 @@ export async function GET() {
       'Content-Disposition': `attachment; filename="quiniela-${date}.xlsx"`,
     },
   })
+
+  } catch (err) {
+    console.error('Excel export failed:', err)
+    return new Response('Export failed — incomplete data could not be generated.', { status: 500 })
+  }
 }
