@@ -60,6 +60,29 @@ function dataCell(
   return cell
 }
 
+// ── pagination helper ─────────────────────────────────────────────────────────
+// Supabase/PostgREST caps results at ~1 000 rows by default.  For tables that
+// can exceed that (predictions, group_qualifications) we paginate so every row
+// is included in the export.
+
+const PAGE_SIZE = 1000
+
+async function fetchAllRows<T>(
+  buildQuery: () => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }> },
+): Promise<T[]> {
+  const all: T[] = []
+  let from = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1)
+    if (error || !data || data.length === 0) break
+    all.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return all
+}
+
 // ── main handler ─────────────────────────────────────────────────────────────
 
 export async function GET() {
@@ -70,12 +93,13 @@ export async function GET() {
 
   const admin = getSupabaseAdminClient()
 
-  // Fetch all data in parallel
+  // Fetch all data in parallel.  Small tables use a single query; large tables
+  // (predictions, qualifications) are paginated to avoid the default row cap.
   const [
     { data: entries },
     { data: matches },
-    { data: predictions },
-    { data: qualifications },
+    predictions,
+    qualifications,
     { data: teams },
     { data: groups },
     { data: rounds },
@@ -89,14 +113,22 @@ export async function GET() {
       round:rounds!matches_round_id_fkey(id, name, sort_order),
       group:groups!matches_group_id_fkey(id, name)
     `).order('match_number'),
-    admin.from('predictions').select('entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id, points_awarded'),
-    admin.from('group_qualifications').select(`
+    fetchAllRows<{
+      entry_id: string; match_id: string;
+      predicted_home: number | null; predicted_away: number | null;
+      predicted_winner_team_id: string | null; points_awarded: number | null;
+    }>(() => admin.from('predictions').select('entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id, points_awarded')),
+    fetchAllRows<{
+      entry_id: string; group_id: string; points_awarded: number | null;
+      team_1st: { name: string }[] | null; team_2nd: { name: string }[] | null; team_3rd: { name: string }[] | null;
+      group: { id: string; name: string }[] | null;
+    }>(() => admin.from('group_qualifications').select(`
       entry_id, group_id, points_awarded,
       team_1st:teams!group_qualifications_predicted_1st_team_id_fkey(name),
       team_2nd:teams!group_qualifications_predicted_2nd_team_id_fkey(name),
       team_3rd:teams!group_qualifications_predicted_3rd_team_id_fkey(name),
       group:groups!group_qualifications_group_id_fkey(id, name)
-    `).order('group_id'),
+    `).order('group_id')),
     admin.from('teams').select('id, name'),
     admin.from('groups').select('id, name').order('name'),
     admin.from('rounds').select('id, name, status, sort_order').order('sort_order'),
@@ -107,16 +139,17 @@ export async function GET() {
   const teamById = Object.fromEntries((teams ?? []).map((t) => [t.id, t as TeamRow]))
 
   // Predictions keyed by entry_id → match_id
-  const predByEntryMatch: Record<string, Record<string, typeof predictions extends (infer T)[] | null ? T : never>> = {}
-  for (const p of predictions ?? []) {
+  type PredRow = (typeof predictions)[number]
+  const predByEntryMatch: Record<string, Record<string, PredRow>> = {}
+  for (const p of predictions) {
     if (!predByEntryMatch[p.entry_id]) predByEntryMatch[p.entry_id] = {}
     predByEntryMatch[p.entry_id][p.match_id] = p
   }
 
   // Qualifications keyed by entry_id → group_id
-  type QualRow = NonNullable<typeof qualifications>[number]
+  type QualRow = (typeof qualifications)[number]
   const qualByEntryGroup: Record<string, Record<string, QualRow>> = {}
-  for (const q of qualifications ?? []) {
+  for (const q of qualifications) {
     if (!qualByEntryGroup[q.entry_id]) qualByEntryGroup[q.entry_id] = {}
     const grp = Array.isArray(q.group) ? q.group[0] : q.group
     if (grp?.id) qualByEntryGroup[q.entry_id][grp.id] = q
