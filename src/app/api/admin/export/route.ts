@@ -117,7 +117,7 @@ export async function GET() {
       entry_id: string; match_id: string;
       predicted_home: number | null; predicted_away: number | null;
       predicted_winner_team_id: string | null; points_awarded: number | null;
-    }>(() => admin.from('predictions').select('entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id, points_awarded')),
+    }>(() => admin.from('predictions').select('entry_id, match_id, predicted_home, predicted_away, predicted_winner_team_id, points_awarded').order('entry_id').order('match_id')),
     fetchAllRows<{
       entry_id: string; group_id: string; points_awarded: number | null;
       team_1st: { name: string }[] | null; team_2nd: { name: string }[] | null; team_3rd: { name: string }[] | null;
@@ -128,7 +128,7 @@ export async function GET() {
       team_2nd:teams!group_qualifications_predicted_2nd_team_id_fkey(name),
       team_3rd:teams!group_qualifications_predicted_3rd_team_id_fkey(name),
       group:groups!group_qualifications_group_id_fkey(id, name)
-    `).order('group_id')),
+    `).order('group_id').order('entry_id')),
     admin.from('teams').select('id, name'),
     admin.from('groups').select('id, name').order('name'),
     admin.from('rounds').select('id, name, status, sort_order').order('sort_order'),
