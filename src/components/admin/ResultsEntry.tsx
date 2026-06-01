@@ -51,17 +51,17 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
   }
 
   // Resolve a side's display: assigned team → resolved feeding-match winner → raw placeholder.
-  function sideDisplay(team: Team | null, placeholder: string | null) {
+  function sideDisplay(team: Team | null, placeholder: string | null, matchNumber?: number) {
     if (team) return `${team.flag_emoji ?? ''} ${team.name}`.trim()
-    const resolvedId = resolveSlotTeamId(placeholder, ctx)
+    const resolvedId = resolveSlotTeamId(placeholder, ctx, matchNumber)
     const resolved = resolvedId ? teamById.get(resolvedId) : null
     if (resolved) return `${resolved.flag_emoji ?? ''} ${resolved.name}`.trim()
     return placeholder ?? '?'
   }
 
   async function handleClear(match: MatchWithTeams) {
-    const homeName = sideDisplay(match.home_team, match.placeholder_home)
-    const awayName = sideDisplay(match.away_team, match.placeholder_away)
+    const homeName = sideDisplay(match.home_team, match.placeholder_home, match.match_number)
+    const awayName = sideDisplay(match.away_team, match.placeholder_away, match.match_number)
     const confirmed = window.confirm(
       t('admin.results.clearConfirm', { number: match.match_number, home: homeName, away: awayName })
     )
@@ -147,8 +147,8 @@ export function ResultsEntry({ rounds, matches, teams }: ResultsEntryProps) {
 
       <div className="space-y-2">
         {roundMatches.map((match) => {
-          const homeLabel = sideDisplay(match.home_team, match.placeholder_home)
-          const awayLabel = sideDisplay(match.away_team, match.placeholder_away)
+          const homeLabel = sideDisplay(match.home_team, match.placeholder_home, match.match_number)
+          const awayLabel = sideDisplay(match.away_team, match.placeholder_away, match.match_number)
 
           // Live tie detection drives the penalty inputs (knockout only).
           const h = parseInt(getScore(match.id, 'home'), 10)
