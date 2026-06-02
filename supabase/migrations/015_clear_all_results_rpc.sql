@@ -47,10 +47,11 @@ BEGIN
 
   -- 4. Log the bulk clear
   INSERT INTO change_log (entity_type, entity_id, field, old_value, new_value, source, changed_by)
-  VALUES ('system', 'all', 'clear_all_results', NULL, NULL, 'manual', admin_email);
+  VALUES ('system', '00000000-0000-0000-0000-000000000000', 'clear_all_results', NULL, NULL, 'manual', admin_email);
 END;
 $$;
 
 -- Only the service role should call this; revoke from anon/authenticated.
 REVOKE ALL ON FUNCTION clear_all_results(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION clear_all_results(TEXT) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION clear_all_results(TEXT) TO service_role;
