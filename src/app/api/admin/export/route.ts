@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { RoundName } from '@/types/app'
 
@@ -58,32 +59,6 @@ function dataCell(
   if (opts?.fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } }
   if (opts?.numFmt) cell.numFmt = opts.numFmt
   return cell
-}
-
-// ── pagination helper ─────────────────────────────────────────────────────────
-// Supabase/PostgREST caps results at ~1 000 rows by default.  For tables that
-// can exceed that (predictions, group_qualifications) we paginate so every row
-// is included in the export.
-
-const PAGE_SIZE = 1000
-
-async function fetchAllRows<T>(
-  buildQuery: () => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }> },
-): Promise<T[]> {
-  const all: T[] = []
-  let from = 0
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1)
-    if (error) {
-      throw new Error(`Supabase pagination error at offset ${from}: ${JSON.stringify(error)}`)
-    }
-    if (!data || data.length === 0) break
-    all.push(...data)
-    if (data.length < PAGE_SIZE) break
-    from += PAGE_SIZE
-  }
-  return all
 }
 
 // ── main handler ─────────────────────────────────────────────────────────────
