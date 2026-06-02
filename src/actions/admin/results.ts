@@ -244,7 +244,7 @@ export async function clearAllResults(): Promise<{ error?: string }> {
   const { error: rpcError } = await admin.rpc('clear_all_results', { admin_email: adminEmail })
 
   if (!rpcError) {
-    // RPC succeeded — all four steps ran in a single transaction.
+    // RPC succeeded — every step ran in a single transaction.
   } else if (rpcError.message?.includes('schema cache')) {
     // Function not yet deployed — execute the same steps inline.
 
@@ -287,7 +287,37 @@ export async function clearAllResults(): Promise<{ error?: string }> {
 
     if (e3) return { error: e3.message }
 
-    // 4. Log the bulk clear
+    // 4. Clear awarded scoring (picks themselves are preserved)
+    const { error: e4 } = await admin
+      .from('predictions')
+      .update({ points_awarded: null, qualification_gated: false, calculated_at: null })
+      .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+    if (e4) return { error: e4.message }
+
+    const { error: e5 } = await admin
+      .from('group_qualifications')
+      .update({ points_awarded: null, calculated_at: null })
+      .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+    if (e5) return { error: e5.message }
+
+    const { error: e6 } = await admin
+      .from('entry_best_third_selections')
+      .update({ points_awarded: null, calculated_at: null })
+      .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+    if (e6) return { error: e6.message }
+
+    // 5. Zero the leaderboard
+    const { error: e7 } = await admin
+      .from('entries')
+      .update({ total_points: 0, rank_snapshot: null, updated_at: new Date().toISOString() })
+      .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+    if (e7) return { error: e7.message }
+
+    // 6. Log the bulk clear
     await admin.from('change_log').insert({
       entity_type: 'system',
       entity_id: '00000000-0000-0000-0000-000000000000',
