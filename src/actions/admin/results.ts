@@ -239,58 +239,14 @@ export async function clearAllResults(): Promise<{ error?: string }> {
 
   const admin = getSupabaseAdminClient()
 
-  // 1. Clear scores/results on ALL matches
-  const { error: clearScoresErr } = await admin
-    .from('matches')
-    .update({
-      home_score: null,
-      away_score: null,
-      home_penalties: null,
-      away_penalties: null,
-      winner_team_id: null,
-      result_confirmed: false,
-      is_manual_override: false,
-    })
-    .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+  // Atomic: all four steps (clear scores, clear KO assignments, reset
+  // best-third flags, append change_log row) run inside one Postgres
+  // transaction via the clear_all_results RPC. If any statement fails,
+  // the entire operation is rolled back — no partially-cleared state.
+  // Scope is admin-entered data only; user predictions are untouched.
+  const { error } = await admin.rpc('clear_all_results', { admin_email: adminEmail })
 
-  if (clearScoresErr) return { error: clearScoresErr.message }
-
-  // 2. Clear knockout team assignments (non-group-stage matches)
-  const { data: knockoutRounds, error: roundsErr } = await admin
-    .from('rounds')
-    .select('id')
-    .neq('name', 'group_stage')
-
-  if (roundsErr) return { error: roundsErr.message }
-
-  if (knockoutRounds && knockoutRounds.length > 0) {
-    const koRoundIds = knockoutRounds.map((r) => r.id)
-    const { error: clearSlotsErr } = await admin
-      .from('matches')
-      .update({ home_team_id: null, away_team_id: null })
-      .in('round_id', koRoundIds)
-
-    if (clearSlotsErr) return { error: clearSlotsErr.message }
-  }
-
-  // 3. Reset best-third-qualified flags on all teams
-  const { error: resetThirdErr } = await admin
-    .from('teams')
-    .update({ best_third_qualified: false })
-    .eq('best_third_qualified', true)
-
-  if (resetThirdErr) return { error: resetThirdErr.message }
-
-  // 4. Log the bulk clear
-  await admin.from('change_log').insert({
-    entity_type: 'system',
-    entity_id: 'all',
-    field: 'clear_all_results',
-    old_value: null,
-    new_value: null,
-    source: 'manual',
-    changed_by: adminEmail,
-  })
+  if (error) return { error: error.message }
 
   revalidatePath('/admin')
   return {}
