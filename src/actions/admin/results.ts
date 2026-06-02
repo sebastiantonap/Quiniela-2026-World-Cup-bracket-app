@@ -256,10 +256,12 @@ export async function clearAllResults(): Promise<{ error?: string }> {
   if (clearScoresErr) return { error: clearScoresErr.message }
 
   // 2. Clear knockout team assignments (non-group-stage matches)
-  const { data: knockoutRounds } = await admin
+  const { data: knockoutRounds, error: roundsErr } = await admin
     .from('rounds')
     .select('id')
     .neq('name', 'group_stage')
+
+  if (roundsErr) return { error: roundsErr.message }
 
   if (knockoutRounds && knockoutRounds.length > 0) {
     const koRoundIds = knockoutRounds.map((r) => r.id)
