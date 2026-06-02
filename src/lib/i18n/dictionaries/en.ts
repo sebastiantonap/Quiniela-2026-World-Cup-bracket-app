@@ -340,6 +340,15 @@ export const en = {
   'admin.users.none': 'None',
   'admin.users.removeAdmin': 'Remove admin',
   'admin.users.filled': 'filled',
+  'admin.users.deleteEntry': 'Delete',
+  'admin.users.deleteEntryConfirm': 'Delete entry "{name}" from {email}? This removes all predictions and cannot be undone.',
+  'admin.users.entryDeleted': 'Entry "{name}" deleted',
+
+  // ---- admin: clear all ----
+  'admin.clearAll': 'Clear All Results',
+  'admin.clearAllConfirm': 'This will remove ALL match results, knockout team assignments, and best-third flags. Type RESET to confirm.',
+  'admin.clearAllSuccess': 'All results cleared successfully',
+  'admin.clearAllError': 'Failed to clear results',
 }
 
 export type Dictionary = typeof en

@@ -229,6 +229,71 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
   return {}
 }
 
+export async function clearAllResults(): Promise<{ error?: string }> {
+  let adminEmail: string
+  try {
+    adminEmail = await assertAdmin()
+  } catch {
+    return { error: 'Unauthorized' }
+  }
+
+  const admin = getSupabaseAdminClient()
+
+  // 1. Clear scores/results on ALL matches
+  const { error: clearScoresErr } = await admin
+    .from('matches')
+    .update({
+      home_score: null,
+      away_score: null,
+      home_penalties: null,
+      away_penalties: null,
+      winner_team_id: null,
+      result_confirmed: false,
+      is_manual_override: false,
+    })
+    .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+  if (clearScoresErr) return { error: clearScoresErr.message }
+
+  // 2. Clear knockout team assignments (non-group-stage matches)
+  const { data: knockoutRounds } = await admin
+    .from('rounds')
+    .select('id')
+    .neq('name', 'group_stage')
+
+  if (knockoutRounds && knockoutRounds.length > 0) {
+    const koRoundIds = knockoutRounds.map((r) => r.id)
+    const { error: clearSlotsErr } = await admin
+      .from('matches')
+      .update({ home_team_id: null, away_team_id: null })
+      .in('round_id', koRoundIds)
+
+    if (clearSlotsErr) return { error: clearSlotsErr.message }
+  }
+
+  // 3. Reset best-third-qualified flags on all teams
+  const { error: resetThirdErr } = await admin
+    .from('teams')
+    .update({ best_third_qualified: false })
+    .eq('best_third_qualified', true)
+
+  if (resetThirdErr) return { error: resetThirdErr.message }
+
+  // 4. Log the bulk clear
+  await admin.from('change_log').insert({
+    entity_type: 'system',
+    entity_id: 'all',
+    field: 'clear_all_results',
+    old_value: null,
+    new_value: null,
+    source: 'manual',
+    changed_by: adminEmail,
+  })
+
+  revalidatePath('/admin')
+  return {}
+}
+
 export async function assignKnockoutTeams(
   matchId: string,
   homeTeamId: string | null,

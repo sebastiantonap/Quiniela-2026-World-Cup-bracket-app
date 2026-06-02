@@ -338,4 +338,13 @@ export const es: Dictionary = {
   'admin.users.none': 'Ninguno',
   'admin.users.removeAdmin': 'Quitar admin',
   'admin.users.filled': 'llenos',
+  'admin.users.deleteEntry': 'Eliminar',
+  'admin.users.deleteEntryConfirm': '¿Eliminar el cuadro "{name}" de {email}? Esto borra todos los pronósticos y no se puede deshacer.',
+  'admin.users.entryDeleted': 'Cuadro "{name}" eliminado',
+
+  // ---- admin: clear all ----
+  'admin.clearAll': 'Borrar Todos los Resultados',
+  'admin.clearAllConfirm': 'Esto eliminará TODOS los resultados de partidos, asignaciones de equipos en eliminación y banderas de mejores terceros. Escribe RESET para confirmar.',
+  'admin.clearAllSuccess': 'Todos los resultados borrados exitosamente',
+  'admin.clearAllError': 'Error al borrar los resultados',
 }

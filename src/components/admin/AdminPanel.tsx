@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { clearAllResults } from '@/actions/admin/results'
+import { Button } from '@/components/ui/Button'
 import { RoundManager } from './RoundManager'
 import { ResultsEntry } from './ResultsEntry'
 import { KnockoutSlotFiller } from './KnockoutSlotFiller'
@@ -33,7 +36,26 @@ interface AdminPanelProps {
 
 export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs, hasTeamMapping, hasMatchMapping, driftCount }: AdminPanelProps) {
   const t = useT()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<AdminTab>('rounds')
+  const [clearLoading, setClearLoading] = useState(false)
+  const [clearFeedback, setClearFeedback] = useState('')
+
+  async function handleClearAll() {
+    const input = window.prompt(t('admin.clearAllConfirm'))
+    if (input !== 'RESET') return
+
+    setClearLoading(true)
+    setClearFeedback('')
+    const result = await clearAllResults()
+    if (result.error) {
+      setClearFeedback(`${t('admin.clearAllError')}: ${result.error}`)
+    } else {
+      setClearFeedback(t('admin.clearAllSuccess'))
+      router.refresh()
+    }
+    setClearLoading(false)
+  }
 
   const tabs: { id: AdminTab; labelKey: TranslationKey }[] = [
     { id: 'rounds', labelKey: 'admin.tab.rounds' },
@@ -53,7 +75,21 @@ export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={clearLoading}
+            onClick={handleClearAll}
+            className="text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/60"
+          >
+            {t('admin.clearAll')}
+          </Button>
+          {clearFeedback && (
+            <span className="text-xs text-slate-400">{clearFeedback}</span>
+          )}
+        </div>
         <a
           href="/api/admin/export"
           className="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm text-slate-200 transition-colors"

@@ -2,6 +2,7 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
+import { isAdmin } from '@/lib/auth/isAdmin'
 import { revalidatePath } from 'next/cache'
 import type { Entry } from '@/types/app'
 
@@ -90,5 +91,20 @@ export async function deleteEntry(id: string): Promise<{ error?: string }> {
 
   if (error) return { error: error.message }
   revalidatePath('/dashboard')
+  return {}
+}
+
+export async function adminDeleteEntry(entryId: string): Promise<{ error?: string }> {
+  const email = await getSessionEmail()
+  if (!await isAdmin(email)) return { error: 'Unauthorized' }
+
+  const supabase = getSupabaseAdminClient()
+  const { error } = await supabase
+    .from('entries')
+    .delete()
+    .eq('id', entryId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/admin')
   return {}
 }
