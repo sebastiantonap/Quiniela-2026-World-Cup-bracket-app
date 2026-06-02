@@ -1,6 +1,7 @@
 'use server'
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
 import { calculatePoints } from './engine'
 import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND } from './knockoutEligibility'
 import { ROUND_POINTS } from '@/lib/constants/rounds'
@@ -84,12 +85,22 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     const matchIds = matches.map((m) => m.id)
     const matchMap = new Map(matches.map((m) => [m.id, m]))
 
-    const { data: predictions } = await supabase
-      .from('predictions')
-      .select('id, entry_id, match_id, predicted_home, predicted_away, predicted_home_penalties, predicted_away_penalties, predicted_winner_team_id')
-      .in('match_id', matchIds)
+    const predictions = await fetchAllRows<{
+      id: string; entry_id: string; match_id: string;
+      predicted_home: number | null; predicted_away: number | null;
+      predicted_home_penalties: number | null; predicted_away_penalties: number | null;
+      predicted_winner_team_id: string | null;
+    }>(() =>
+      supabase
+        .from('predictions')
+        .select('id, entry_id, match_id, predicted_home, predicted_away, predicted_home_penalties, predicted_away_penalties, predicted_winner_team_id')
+        .in('match_id', matchIds)
+        .order('id')
+    )
 
-    if (!predictions) return { error: 'Failed to fetch predictions' }
+    if (predictions.length === 0) {
+      return { error: 'No predictions found for confirmed matches' }
+    }
 
     const now = new Date().toISOString()
 
