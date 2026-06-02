@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addAdmin, removeAdmin } from '@/actions/admin/manageAdmins'
+import { adminDeleteEntry } from '@/actions/entries'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/lib/i18n/I18nProvider'
 import { roundLabel } from '@/lib/i18n/translator'
@@ -18,6 +19,7 @@ export function UserManager({ users }: UserManagerProps) {
   const [newEmail, setNewEmail] = useState('')
   const [addLoading, setAddLoading] = useState(false)
   const [removeLoading, setRemoveLoading] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
   const router = useRouter()
 
@@ -47,6 +49,22 @@ export function UserManager({ users }: UserManagerProps) {
       router.refresh()
     }
     setRemoveLoading(null)
+  }
+
+  async function handleDeleteEntry(entryId: string, entryName: string, userEmail: string) {
+    const confirmed = window.confirm(t('admin.users.deleteEntryConfirm', { name: entryName, email: userEmail }))
+    if (!confirmed) return
+
+    setDeleteLoading(entryId)
+    setFeedback('')
+    const result = await adminDeleteEntry(entryId)
+    if (result.error) {
+      setFeedback(result.error)
+    } else {
+      setFeedback(t('admin.users.entryDeleted', { name: entryName }))
+      router.refresh()
+    }
+    setDeleteLoading(null)
   }
 
   return (
@@ -117,7 +135,18 @@ export function UserManager({ users }: UserManagerProps) {
                     <div className="space-y-2">
                       {user.entries.map((entry) => (
                         <div key={entry.id}>
-                          <p className="text-xs font-medium text-slate-300 mb-1">{entry.name}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-xs font-medium text-slate-300">{entry.name}</p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              loading={deleteLoading === entry.id}
+                              onClick={() => handleDeleteEntry(entry.id, entry.name, user.email)}
+                              className="text-red-400 hover:text-red-300 text-xs !px-1.5 !py-0.5"
+                            >
+                              {t('admin.users.deleteEntry')}
+                            </Button>
+                          </div>
                           <div className="flex flex-wrap gap-1">
                             {entry.rounds
                               .filter((r) => r.matchCount > 0)

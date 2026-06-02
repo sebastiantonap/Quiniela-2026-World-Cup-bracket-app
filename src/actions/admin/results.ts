@@ -229,6 +229,29 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
   return {}
 }
 
+export async function clearAllResults(): Promise<{ error?: string }> {
+  let adminEmail: string
+  try {
+    adminEmail = await assertAdmin()
+  } catch {
+    return { error: 'Unauthorized' }
+  }
+
+  const admin = getSupabaseAdminClient()
+
+  // Atomic: all four steps (clear scores, clear KO assignments, reset
+  // best-third flags, append change_log row) run inside one Postgres
+  // transaction via the clear_all_results RPC. If any statement fails,
+  // the entire operation is rolled back — no partially-cleared state.
+  // Scope is admin-entered data only; user predictions are untouched.
+  const { error } = await admin.rpc('clear_all_results', { admin_email: adminEmail })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin')
+  return {}
+}
+
 export async function assignKnockoutTeams(
   matchId: string,
   homeTeamId: string | null,
