@@ -119,6 +119,7 @@ export async function getUserLeaderboardRow(
     .from('leaderboard')
     .select('*')
     .eq('user_email', email)
+    .order('rank', { ascending: true })
     .limit(1)
     .maybeSingle()
 
