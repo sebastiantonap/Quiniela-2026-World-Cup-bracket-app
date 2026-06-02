@@ -37,7 +37,7 @@ export interface LeaderboardRow {
   correct_predictions: number
   scored_predictions: number
   rank: number
-  rank_delta: number
+  rank_delta: number | null
 }
 
 export interface EnrichedLeaderboardRow extends LeaderboardRow {

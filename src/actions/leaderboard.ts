@@ -7,7 +7,7 @@ import type { EnrichedLeaderboardRow, RoundName } from '@/types/app'
 export async function getLeaderboard(
   page = 1,
   pageSize = 50
-): Promise<{ rows: EnrichedLeaderboardRow[]; total: number }> {
+): Promise<{ rows: EnrichedLeaderboardRow[]; total: number; userRow: EnrichedLeaderboardRow | null }> {
   const supabase = getSupabaseAdminClient()
 
   const from = (page - 1) * pageSize
@@ -19,7 +19,7 @@ export async function getLeaderboard(
     .range(from, to)
 
   const baseRows = (data ?? []) as EnrichedLeaderboardRow[]
-  if (baseRows.length === 0) return { rows: [], total: count ?? 0 }
+  if (baseRows.length === 0) return { rows: [], total: count ?? 0, userRow: null }
 
   const entryIds = baseRows.map((r) => r.entry_id)
 
@@ -102,9 +102,33 @@ export async function getLeaderboard(
 
   const rows: EnrichedLeaderboardRow[] = baseRows.map((row) => ({
     ...row,
+    rank_delta: Number.isFinite(row.rank_delta) ? row.rank_delta : 0,
     max_potential: row.total_points + (potentialMap.get(row.entry_id) ?? 0),
     round_breakdown: breakdownMap.get(row.entry_id) ?? {},
   }))
 
-  return { rows, total: count ?? 0 }
+  return { rows, total: count ?? 0, userRow: null }
+}
+
+export async function getUserLeaderboardRow(
+  email: string
+): Promise<EnrichedLeaderboardRow | null> {
+  const supabase = getSupabaseAdminClient()
+
+  const { data } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .eq('user_email', email)
+    .limit(1)
+    .maybeSingle()
+
+  if (!data) return null
+
+  const row = data as unknown as EnrichedLeaderboardRow
+  return {
+    ...row,
+    rank_delta: Number.isFinite(row.rank_delta) ? row.rank_delta : 0,
+    max_potential: row.total_points,
+    round_breakdown: {},
+  }
 }
