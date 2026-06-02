@@ -20,14 +20,15 @@ function rankDisplay(rank: number) {
   return { icon: null, classes: 'text-slate-500 tabular-nums' }
 }
 
-function RankDelta({ delta, hasSnapshot }: { delta: number; hasSnapshot: boolean }) {
-  if (!hasSnapshot || delta === 0) return <span className="text-slate-600 text-[10px]">—</span>
-  if (delta > 0)
+function RankDelta({ delta, hasSnapshot }: { delta: number | null; hasSnapshot: boolean }) {
+  if (!hasSnapshot || !Number.isFinite(delta) || delta === 0)
+    return <span className="text-slate-600 text-[10px]">—</span>
+  if (delta! > 0)
     return (
       <span className="text-green-400 text-[10px] font-semibold tabular-nums">↑{delta}</span>
     )
   return (
-    <span className="text-red-400 text-[10px] font-semibold tabular-nums">↓{Math.abs(delta)}</span>
+    <span className="text-red-400 text-[10px] font-semibold tabular-nums">↓{Math.abs(delta!)}</span>
   )
 }
 
@@ -69,19 +70,66 @@ function BreakdownTooltip({ row }: { row: EnrichedLeaderboardRow }) {
   )
 }
 
+function YourPositionCard({ row }: { row: EnrichedLeaderboardRow }) {
+  const t = useT()
+  const { icon } = rankDisplay(row.rank)
+  const delta = Number.isFinite(row.rank_delta) ? row.rank_delta! : 0
+
+  return (
+    <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-400/70">
+        {t('leaderboard.yourPosition')}
+      </p>
+      <div className="flex items-center gap-3">
+        <span className="text-lg font-bold text-amber-400">
+          {icon ?? `#${row.rank}`}
+        </span>
+        {delta !== 0 && (
+          <span
+            className={`text-xs font-semibold tabular-nums ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}
+            title={t('leaderboard.rankDeltaHint')}
+          >
+            {delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`}
+          </span>
+        )}
+        <span className="text-sm font-medium text-slate-200">{row.entry_name}</span>
+        <span className="ml-auto text-sm font-bold tabular-nums text-slate-100">
+          {row.total_points} {t('leaderboard.col.points').toLowerCase()}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 interface LeaderboardTableProps {
   rows: EnrichedLeaderboardRow[]
   currentPage: number
   totalPages: number
   currentUserEmail: string | null
+  userRow: EnrichedLeaderboardRow | null
 }
 
-export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEmail }: LeaderboardTableProps) {
+export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEmail, userRow }: LeaderboardTableProps) {
   const t = useT()
   const anyHasSnapshot = rows.some((r) => r.rank_snapshot !== null)
 
+  const userOnPage = currentUserEmail
+    ? rows.some((r) => r.user_email === currentUserEmail)
+    : false
+
+  const showUserCard = !userOnPage && userRow !== null
+
   return (
     <div>
+      {/* Your Position card (shown when user is not on current page) */}
+      {showUserCard && <YourPositionCard row={userRow} />}
+
+      {/* Instruction banner */}
+      <p className="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+        <span className="text-slate-600">ℹ</span>
+        {t('leaderboard.legend')}
+      </p>
+
       <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
         <table className="w-full text-sm">
           <thead>
@@ -90,7 +138,12 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
               <th className="px-4 py-3">{t('leaderboard.col.bracket')}</th>
               <th className="hidden px-4 py-3 sm:table-cell">{t('leaderboard.col.user')}</th>
               <th className="hidden px-4 py-3 text-center lg:table-cell">{t('leaderboard.col.correctPct')}</th>
-              <th className="hidden px-4 py-3 text-right lg:table-cell">{t('leaderboard.col.max')}</th>
+              <th
+                className="hidden px-4 py-3 text-right lg:table-cell"
+                title={t('leaderboard.maxTooltip')}
+              >
+                {t('leaderboard.col.max')}
+              </th>
               <th className="px-4 py-3 text-right">{t('leaderboard.col.points')}</th>
             </tr>
           </thead>
@@ -110,12 +163,14 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
                     isMe ? 'bg-amber-500/10 hover:bg-amber-500/15' : 'hover:bg-slate-700/40'
                   }`}
                 >
-                  {/* Rank + delta */}
+                  {/* Rank + delta (horizontal layout) */}
                   <td className={`px-4 py-3 ${classes}`}>
-                    <div className="flex flex-col items-start gap-0.5">
+                    <div className="flex items-center gap-1.5">
                       <span>{icon ? icon : `#${row.rank}`}</span>
                       {anyHasSnapshot && (
-                        <RankDelta delta={row.rank_delta} hasSnapshot={row.rank_snapshot !== null} />
+                        <span title={t('leaderboard.rankDeltaHint')}>
+                          <RankDelta delta={row.rank_delta} hasSnapshot={row.rank_snapshot !== null} />
+                        </span>
                       )}
                     </div>
                   </td>
@@ -133,6 +188,12 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
                         {t('leaderboard.you')}
                       </span>
                     )}
+                    {/* Mobile: show hidden column info inline */}
+                    <span className="block text-[11px] text-slate-500 sm:hidden mt-0.5">
+                      {correctPct !== null && <span>{correctPct}% {t('leaderboard.col.correctPct').toLowerCase()}</span>}
+                      {correctPct !== null && <span className="mx-1">·</span>}
+                      <span>≤{row.max_potential}</span>
+                    </span>
                   </td>
 
                   {/* Masked email */}
@@ -152,7 +213,10 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
                   </td>
 
                   {/* Max potential */}
-                  <td className="hidden px-4 py-3 text-right text-slate-500 tabular-nums lg:table-cell">
+                  <td
+                    className="hidden px-4 py-3 text-right text-slate-500 tabular-nums lg:table-cell"
+                    title={t('leaderboard.maxTooltip')}
+                  >
                     ≤&nbsp;{row.max_potential}
                   </td>
 
@@ -166,11 +230,6 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
           </tbody>
         </table>
       </div>
-
-      {/* Legend */}
-      <p className="mt-2 text-center text-xs text-slate-600">
-        {t('leaderboard.legend')}
-      </p>
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">

@@ -194,7 +194,7 @@ export interface Database {
           correct_predictions: number
           scored_predictions: number
           rank: number
-          rank_delta: number
+          rank_delta: number | null
         }
       }
     }

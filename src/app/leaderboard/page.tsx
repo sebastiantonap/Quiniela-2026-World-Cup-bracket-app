@@ -1,5 +1,5 @@
 import { Nav } from '@/components/Nav'
-import { getLeaderboard } from '@/actions/leaderboard'
+import { getLeaderboard, getUserLeaderboardRow } from '@/actions/leaderboard'
 import { getSessionEmail } from '@/lib/session'
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable'
 import { getT } from '@/lib/i18n/server'
@@ -21,6 +21,15 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   ])
 
   const totalPages = Math.ceil(total / pageSize)
+
+  // Fetch user's position if they're not on the current page
+  const userOnPage = currentUserEmail
+    ? rows.some((r) => r.user_email === currentUserEmail)
+    : true
+  const userRow =
+    !userOnPage && currentUserEmail
+      ? await getUserLeaderboardRow(currentUserEmail)
+      : null
 
   return (
     <div className="min-h-screen">
@@ -68,6 +77,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
             currentPage={page}
             totalPages={totalPages}
             currentUserEmail={currentUserEmail}
+            userRow={userRow}
           />
         )}
 
