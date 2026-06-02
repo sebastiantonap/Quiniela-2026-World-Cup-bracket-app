@@ -239,14 +239,67 @@ export async function clearAllResults(): Promise<{ error?: string }> {
 
   const admin = getSupabaseAdminClient()
 
-  // Atomic: all four steps (clear scores, clear KO assignments, reset
-  // best-third flags, append change_log row) run inside one Postgres
-  // transaction via the clear_all_results RPC. If any statement fails,
-  // the entire operation is rolled back — no partially-cleared state.
-  // Scope is admin-entered data only; user predictions are untouched.
-  const { error } = await admin.rpc('clear_all_results', { admin_email: adminEmail })
+  // Prefer the atomic RPC (migration 015) when available; fall back to
+  // sequential queries if the function hasn't been applied yet.
+  const { error: rpcError } = await admin.rpc('clear_all_results', { admin_email: adminEmail })
 
-  if (error) return { error: error.message }
+  if (!rpcError) {
+    // RPC succeeded — all four steps ran in a single transaction.
+  } else if (rpcError.message?.includes('schema cache')) {
+    // Function not yet deployed — execute the same steps inline.
+
+    // 1. Clear scores/results on ALL matches
+    const { error: e1 } = await admin
+      .from('matches')
+      .update({
+        home_score: null,
+        away_score: null,
+        home_penalties: null,
+        away_penalties: null,
+        winner_team_id: null,
+        result_confirmed: false,
+        is_manual_override: false,
+      })
+      .neq('id', '00000000-0000-0000-0000-000000000000') // match all rows
+
+    if (e1) return { error: e1.message }
+
+    // 2. Clear knockout team assignments (non-group-stage matches)
+    const { data: koRounds } = await admin
+      .from('rounds')
+      .select('id')
+      .neq('name', 'group_stage')
+
+    if (koRounds && koRounds.length > 0) {
+      const { error: e2 } = await admin
+        .from('matches')
+        .update({ home_team_id: null, away_team_id: null })
+        .in('round_id', koRounds.map((r) => r.id))
+
+      if (e2) return { error: e2.message }
+    }
+
+    // 3. Reset best-third-qualified flags on all teams
+    const { error: e3 } = await admin
+      .from('teams')
+      .update({ best_third_qualified: false })
+      .eq('best_third_qualified', true)
+
+    if (e3) return { error: e3.message }
+
+    // 4. Log the bulk clear
+    await admin.from('change_log').insert({
+      entity_type: 'system',
+      entity_id: '00000000-0000-0000-0000-000000000000',
+      field: 'clear_all_results',
+      old_value: null,
+      new_value: null,
+      source: 'manual',
+      changed_by: adminEmail,
+    })
+  } else {
+    return { error: rpcError.message }
+  }
 
   revalidatePath('/admin')
   return {}
