@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
@@ -27,8 +28,11 @@ export interface EntryVisibility {
  * This is the single source of truth used by the pick getters
  * (predictions / qualifications / best-third) so the gate can't be bypassed by calling
  * a server action directly, and by the entry page to drive the read-only UI.
+ *
+ * Wrapped in React's `cache()` so the entry page and all three getters share one
+ * resolution per request render instead of each re-running the underlying DB queries.
  */
-export async function resolveEntryVisibility(entryId: string): Promise<EntryVisibility> {
+export const resolveEntryVisibility = cache(async (entryId: string): Promise<EntryVisibility> => {
   const supabase = getSupabaseAdminClient()
 
   const [viewerEmail, { data: entry }] = await Promise.all([
@@ -54,4 +58,4 @@ export async function resolveEntryVisibility(entryId: string): Promise<EntryVisi
   }
 
   return { viewerEmail, isOwner, isAdmin: viewerIsAdmin, revealsAll, revealedRounds }
-}
+})
