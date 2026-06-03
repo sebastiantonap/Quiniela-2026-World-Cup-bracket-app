@@ -2,19 +2,43 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
-import type { Prediction } from '@/types/app'
+import { resolveEntryVisibility } from '@/lib/entries/visibility'
+import type { Prediction, RoundName } from '@/types/app'
 
 export async function getPredictionsForEntry(entryId: string): Promise<Record<string, Prediction>> {
   const supabase = getSupabaseAdminClient()
 
+  const { revealsAll, revealedRounds } = await resolveEntryVisibility(entryId)
+
+  // Owners and admins get every prediction. Other viewers only see predictions whose
+  // round is already revealed (locked/completed); we join the round so we can filter,
+  // then strip it to preserve the plain Prediction shape.
+  if (revealsAll) {
+    const { data } = await supabase
+      .from('predictions')
+      .select('*')
+      .eq('entry_id', entryId)
+
+    const map: Record<string, Prediction> = {}
+    for (const pred of data ?? []) {
+      map[pred.match_id] = pred
+    }
+    return map
+  }
+
   const { data } = await supabase
     .from('predictions')
-    .select('*')
+    .select('*, matches!inner(round:rounds!inner(name))')
     .eq('entry_id', entryId)
 
   const map: Record<string, Prediction> = {}
-  for (const pred of data ?? []) {
-    map[pred.match_id] = pred
+  for (const row of data ?? []) {
+    const { matches, ...pred } = row as Prediction & {
+      matches: { round: { name: RoundName } }
+    }
+    if (revealedRounds.has(matches.round.name)) {
+      map[pred.match_id] = pred
+    }
   }
   return map
 }

@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getPublicEntry, getEntries } from '@/actions/entries'
 import { getThirdPlaceSelectionsForEntry } from '@/actions/thirdPlaceSelections'
 import { getSessionEmail } from '@/lib/session'
+import { resolveEntryVisibility } from '@/lib/entries/visibility'
 import { getPredictionsForEntry } from '@/actions/predictions'
 import { getQualificationsForEntry } from '@/actions/qualifications'
 import { Nav } from '@/components/Nav'
@@ -34,6 +35,7 @@ export default async function EntryPage({ params }: PageProps) {
   const supabase = getSupabaseAdminClient()
 
   const [
+    visibility,
     { data: roundsData },
     { data: matchesData },
     { data: groupsData },
@@ -42,6 +44,7 @@ export default async function EntryPage({ params }: PageProps) {
     myEntries,
     thirdPlaceSelections,
   ] = await Promise.all([
+    resolveEntryVisibility(id),
     supabase.from('rounds').select('*').order('sort_order', { ascending: true }),
     supabase
       .from('matches')
@@ -138,6 +141,7 @@ export default async function EntryPage({ params }: PageProps) {
           initialThirdPlaceSelections={thirdPlaceSelections}
           entryTotalPoints={entry.total_points}
           readOnly={!isOwner}
+          revealedRounds={Array.from(visibility.revealedRounds)}
         />
       </main>
     </div>
