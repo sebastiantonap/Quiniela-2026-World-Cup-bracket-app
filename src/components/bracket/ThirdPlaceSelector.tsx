@@ -13,7 +13,7 @@ import { upsertThirdPlaceSelections } from '@/actions/thirdPlaceSelections'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
 import { useT } from '@/lib/i18n/I18nProvider'
 import { roundLabel } from '@/lib/i18n/translator'
-import type { MatchWithTeams, Prediction, Team, Group } from '@/types/app'
+import type { MatchWithTeams, Prediction, Team, Group, QualState } from '@/types/app'
 
 interface ThirdPlaceSelectorProps {
   entryId: string
@@ -23,6 +23,7 @@ interface ThirdPlaceSelectorProps {
   isEditable: boolean
   initialSelections: string[]
   onClose: () => void
+  quals: QualState
 }
 
 export function ThirdPlaceSelector({
@@ -33,6 +34,7 @@ export function ThirdPlaceSelector({
   isEditable,
   initialSelections,
   onClose,
+  quals,
 }: ThirdPlaceSelectorProps) {
   const t = useT()
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
@@ -46,7 +48,7 @@ export function ThirdPlaceSelector({
       if (!group) continue
 
       const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
-      const { standings, predictedMatchCount } = computePredictedStandings(
+      const { standings, ambiguities, predictedMatchCount } = computePredictedStandings(
         group.teams,
         groupMatches,
         predictions
@@ -54,7 +56,15 @@ export function ThirdPlaceSelector({
 
       if (predictedMatchCount === 0 || !standings[2]) continue
 
-      const s = standings[2]
+      // When 3rd is tied with 2nd or 4th, prefer the user's explicit pick over standings[2]
+      const userPick3rd = quals[group.id]?.predicted3rd ?? null
+      const hasTie = ambiguities.second || ambiguities.third
+      const effectiveTeamId =
+        hasTie && userPick3rd
+          ? userPick3rd
+          : standings[2].team.id
+
+      const s = standings.find((st) => st.team.id === effectiveTeamId) ?? standings[2]
       entries.push({
         group: letter,
         teamId: s.team.id,
@@ -69,7 +79,7 @@ export function ThirdPlaceSelector({
 
     return sortThirdPlaceTeams(entries)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, groupStageMatches, predictions])
+  }, [groups, groupStageMatches, predictions, quals])
 
   const { tieZoneStart, tieZoneEnd, hasBoundaryTie } = useMemo(
     () => computeTieZone(thirdPlaceTeams),

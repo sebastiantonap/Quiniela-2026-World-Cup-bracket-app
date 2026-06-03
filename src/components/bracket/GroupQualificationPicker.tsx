@@ -72,28 +72,29 @@ export function GroupQualificationPicker({
             <div key={key} className="flex items-center gap-2">
               <span className="w-7 flex-shrink-0 text-xs font-bold text-amber-400">{t(labelKey)}</span>
               {isEditable ? (
-                <select
-                  value={currentVal ?? ''}
-                  onChange={(e) => onUpdate(groupId, { [key]: e.target.value || null })}
-                  className={`flex-1 rounded border px-2 py-1 text-xs text-slate-100 outline-none focus:ring-1 ${
-                    isAmbig
-                      ? 'border-amber-500/70 bg-amber-900/20 focus:border-amber-500 focus:ring-amber-500/30'
-                      : 'border-slate-600 bg-slate-700 focus:border-amber-500 focus:ring-amber-500/30'
-                  }`}
-                >
-                  <option value="">
-                    {isAmbig ? t('picker.tiedPickManually') : t('picker.pickTeam')}
-                  </option>
-                  {teams.map((t) => {
-                    // Grey out only teams the user has explicitly placed in another slot
-                    const takenByOther = selectedIds.has(t.id) && t.id !== currentVal
-                    return (
-                      <option key={t.id} value={t.id} disabled={takenByOther}>
-                        {t.flag_emoji} {t.name}
-                      </option>
-                    )
-                  })}
-                </select>
+                isAmbig ? (
+                  <select
+                    value={currentVal ?? ''}
+                    onChange={(e) => onUpdate(groupId, { [key]: e.target.value || null })}
+                    className="flex-1 rounded border border-amber-500/70 bg-amber-900/20 px-2 py-1 text-xs text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                  >
+                    <option value="">{t('picker.tiedPickManually')}</option>
+                    {teams.map((t) => {
+                      // Grey out only teams the user has explicitly placed in another slot
+                      const takenByOther = selectedIds.has(t.id) && t.id !== currentVal
+                      return (
+                        <option key={t.id} value={t.id} disabled={takenByOther}>
+                          {t.flag_emoji} {t.name}
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <span className="flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-300 flex items-center gap-1">
+                    <span className="text-green-400 text-[10px]">●</span>
+                    {teams.find((t) => t.id === currentVal)?.name ?? '—'}
+                  </span>
+                )
               ) : (
                 <span className="flex-1 text-xs text-slate-300">
                   {teams.find((t) => t.id === currentVal)?.name ?? '—'}

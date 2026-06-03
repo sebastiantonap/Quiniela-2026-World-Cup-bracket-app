@@ -136,6 +136,7 @@ export default async function EntryPage({ params }: PageProps) {
           groups={groups}
           initialQuals={quals}
           initialThirdPlaceSelections={thirdPlaceSelections}
+          entryTotalPoints={entry.total_points}
           readOnly={!isOwner}
         />
       </main>

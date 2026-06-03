@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { GroupStageTab } from './GroupStageTab'
 import { KnockoutTab } from './KnockoutTab'
+import { ResultsTab } from './ResultsTab'
 import { RoundStatusBadge } from '@/components/ui/Badge'
 import { usePredictions } from '@/hooks/usePredictions'
 import { useQualifications } from '@/hooks/useQualifications'
@@ -21,6 +22,7 @@ interface BracketShellProps {
   groups: (Group & { teams: Team[] })[]
   initialQuals: QualState
   initialThirdPlaceSelections: string[]
+  entryTotalPoints: number
   readOnly?: boolean
 }
 
@@ -32,6 +34,7 @@ export function BracketShell({
   groups,
   initialQuals,
   initialThirdPlaceSelections,
+  entryTotalPoints,
   readOnly = false,
 }: BracketShellProps) {
   const t = useT()
@@ -39,10 +42,17 @@ export function BracketShell({
 
   const defaultTab =
     ROUND_ORDER.find((r) => roundMap[r]?.status === 'accepting_predictions') ?? 'group_stage'
-  const [activeRound, setActiveRound] = useState<RoundName>(defaultTab as RoundName)
+  const [activeRound, setActiveRound] = useState<RoundName | 'results'>(defaultTab as RoundName)
 
   const { predictions, updatePrediction, saving, errors } = usePredictions(entryId, initialPredictions)
   const { quals, updateQualification, saving: qualSaving } = useQualifications(entryId, initialQuals)
+
+  // Check if there are any confirmed results to show the Results tab
+  const hasConfirmedResults = useMemo(() => {
+    return Object.values(matchesByRound).some((roundMatches) =>
+      roundMatches.some((m) => m.result_confirmed)
+    )
+  }, [matchesByRound])
 
   // Count groups with tied positions that haven't been manually resolved yet
   const unresolvedGroupCount = useMemo(() => {
@@ -75,20 +85,20 @@ export function BracketShell({
 
   const activeRoundData = roundMap[activeRound]
   const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
-  const activeMatches = matchesByRound[activeRound] ?? []
+  const activeMatches = activeRound === 'results' ? [] : matchesByRound[activeRound] ?? []
 
   // Per-match knockout eligibility for the active round. A team is "yours" if you correctly
   // had it advancing into this round: group picks feed Round of 32, then each round keys off
   // who you picked to win in the previous round. Mirrors the scoring engine.
   const knockoutEligibility = useMemo(() => {
     const result: Record<string, KnockoutEligibility> = {}
-    if (activeRound === 'group_stage') return result
+    if (activeRound === 'group_stage' || activeRound === 'results') return result
 
     let isEligible: (teamId: string) => boolean
     if (activeRound === 'round_of_32') {
       isEligible = (teamId) => eligibilitySet.has(teamId)
     } else {
-      const prevRound = PREV_ELIGIBILITY_ROUND[activeRound]
+      const prevRound = PREV_ELIGIBILITY_ROUND[activeRound as RoundName]
       const prevWinners = new Set<string>()
       for (const m of (prevRound && matchesByRound[prevRound]) ?? []) {
         const w = predictions[m.id]?.predicted_winner_team_id
@@ -146,6 +156,19 @@ export function BracketShell({
               </button>
             )
           })}
+          {hasConfirmedResults && (
+            <button
+              key="results"
+              onClick={() => setActiveRound('results')}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
+                activeRound === 'results'
+                  ? 'bg-slate-700 text-slate-100 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('results.title')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -166,7 +189,14 @@ export function BracketShell({
         </div>
       )}
 
-      {activeRound === 'group_stage' ? (
+      {activeRound === 'results' ? (
+        <ResultsTab
+          matches={Object.values(matchesByRound).flat()}
+          predictions={predictions}
+          rounds={rounds}
+          totalPoints={entryTotalPoints}
+        />
+      ) : activeRound === 'group_stage' ? (
         <GroupStageTab
           entryId={entryId}
           matches={activeMatches}

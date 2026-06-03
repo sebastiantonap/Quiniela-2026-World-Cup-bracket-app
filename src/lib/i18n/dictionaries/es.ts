@@ -6,6 +6,7 @@ export const es: Dictionary = {
   'common.pts': 'pts',
   'common.points': 'puntos',
   'common.team': 'Equipo',
+  'common.match': 'Partido',
   'common.cancel': 'Cancelar',
   'common.create': 'Crear',
   'common.confirm': 'Confirmar',
@@ -183,6 +184,13 @@ export const es: Dictionary = {
   'bracket.groupOther': '{count} grupos',
   'bracket.unresolvedSuffix': 'tienen posiciones empatadas que necesitan resolverse manualmente antes de que tu cuadro esté completo.',
 
+  // ---- results ----
+  'results.title': 'Resultados',
+  'results.total': 'Total',
+  'results.roundTotal': 'Total de ronda',
+  'results.yourPrediction': 'Tu pronóstico',
+  'results.actualResult': 'Resultado real',
+
   // ---- best 8 trigger / group stage tab ----
   'best8.title': 'Los 8 Mejores Terceros',
   'best8.tieResolve': 'empate — resuelve manualmente',
@@ -306,6 +314,11 @@ export const es: Dictionary = {
   'admin.history.col.by': 'Por',
 
   // ---- admin: knockout slots ----
+  'admin.slots.r32Checklist': 'Precondiciones R32',
+  'admin.slots.allGroupMatchesConfirmed': 'Todos los {count}/72 partidos de fase de grupos confirmados',
+  'admin.slots.bestThirdConfirmed': 'Los 8 mejores terceros confirmados ({count}/8)',
+  'admin.slots.confirmNow': 'Confirmar ahora',
+  'admin.slots.r32SlotsAssigned': 'Partidos R32 completamente asignados ({count}/16)',
   'admin.slots.canFillOne': '{count} partido puede llenarse desde los presets (los espacios con empate / sin definir se omiten).',
   'admin.slots.canFillOther': '{count} partidos pueden llenarse desde los presets (los espacios con empate / sin definir se omiten).',
   'admin.slots.assignAll': 'Asignar todos los presets',

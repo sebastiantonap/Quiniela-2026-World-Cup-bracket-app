@@ -26,6 +26,14 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
 
   const [selectedRound, setSelectedRound] = useState<RoundName>('round_of_32')
+
+  // Pre-flight checklist conditions
+  const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
+  const allGroupMatchesConfirmed = groupStageMatches.length === 72 && groupStageMatches.every((m) => m.result_confirmed)
+  const bestThirdCount = teams.filter((t) => t.best_third_qualified).length
+  const bestThirdConfirmed = bestThirdCount === 8
+  const r32Matches = matches.filter((m) => m.round?.name === 'round_of_32')
+  const r32SlotsAssigned = r32Matches.filter((m) => m.home_team && m.away_team).length
   const [slots, setSlots] = useState<Record<string, { home?: string; away?: string }>>({})
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [feedback, setFeedback] = useState<Record<string, string>>({})
@@ -117,6 +125,54 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
 
   return (
     <div>
+      {/* Pre-flight checklist for Round of 32 */}
+      {selectedRound === 'round_of_32' && (
+        <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
+          <div className="mb-2 text-sm font-semibold text-slate-300">{t('admin.slots.r32Checklist')}</div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className={allGroupMatchesConfirmed ? 'text-green-400' : 'text-slate-500'}>
+                {allGroupMatchesConfirmed ? '✅' : '⬜'}
+              </span>
+              <span className={allGroupMatchesConfirmed ? 'text-slate-300' : 'text-slate-400'}>
+                {t('admin.slots.allGroupMatchesConfirmed', { count: groupStageMatches.length })}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={bestThirdConfirmed ? 'text-green-400' : 'text-slate-500'}>
+                {bestThirdConfirmed ? '✅' : '⬜'}
+              </span>
+              <span className={bestThirdConfirmed ? 'text-slate-300' : 'text-slate-400'}>
+                {t('admin.slots.bestThirdConfirmed', { count: bestThirdCount })}
+              </span>
+              {!bestThirdConfirmed && (
+                <button
+                  onClick={() => {
+                    const tabs = document.querySelectorAll('button')
+                    tabs.forEach((tab) => {
+                      if (tab.textContent?.includes('Standings')) {
+                    ;(tab as HTMLButtonElement).click()
+                      }
+                    })
+                  }}
+                  className="ml-2 text-amber-400 hover:text-amber-300 underline"
+                >
+                  → {t('admin.slots.confirmNow')}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={r32SlotsAssigned === 16 ? 'text-green-400' : 'text-slate-500'}>
+                {r32SlotsAssigned === 16 ? '✅' : '⬜'}
+              </span>
+              <span className={r32SlotsAssigned === 16 ? 'text-slate-300' : 'text-slate-400'}>
+                {t('admin.slots.r32SlotsAssigned', { count: r32SlotsAssigned })}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-wrap gap-2">
         {knockoutRounds.map((roundName) => {
           const round = roundMap[roundName]

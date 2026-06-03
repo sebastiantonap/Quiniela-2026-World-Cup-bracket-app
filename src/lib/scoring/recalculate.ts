@@ -13,7 +13,8 @@ function scoreQualification(
   predicted1st: string | null,
   predicted2nd: string | null,
   predicted3rd: string | null,
-  actualStandings: { teamId: string }[]
+  actualStandings: { teamId: string }[],
+  bestThirdQualifiedIds: Set<string>
 ): number {
   const actual1st = actualStandings[0]?.teamId ?? null
   const actual2nd = actualStandings[1]?.teamId ?? null
@@ -25,18 +26,22 @@ function scoreQualification(
   if (predicted1st) {
     if (predicted1st === actual1st) pts += 4
     else if (qualifyingIds.includes(predicted1st)) pts += 1
-    else if (predicted1st === actual3rd) pts += 1
+    else if (predicted1st === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += 1
   }
 
   if (predicted2nd) {
     if (predicted2nd === actual2nd) pts += 3
     else if (qualifyingIds.includes(predicted2nd)) pts += 1
-    else if (predicted2nd === actual3rd) pts += 1
+    else if (predicted2nd === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += 1
   }
 
   if (predicted3rd && actual3rd) {
-    if (predicted3rd === actual3rd) pts += 2
-    else if (qualifyingIds.includes(predicted3rd)) pts += 1
+    if (predicted3rd === actual3rd) {
+      // only award 2 pts if team actually qualified as a best-8 third
+      if (bestThirdQualifiedIds.has(actual3rd)) pts += 2
+    } else if (qualifyingIds.includes(predicted3rd)) {
+      pts += 1
+    }
   }
 
   return pts
@@ -228,6 +233,17 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     // affectedEntryIds already declared above
 
+    // ---------- Fetch best-8 third-place teams once (used in both qualification scoring and best-8 third selections scoring) ----------
+    let bestThirdQualifiedIds = new Set<string>()
+    if (round.name === 'group_stage') {
+      const { data: advancingThirds } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('best_third_qualified', true)
+
+      bestThirdQualifiedIds = new Set((advancingThirds ?? []).map((t) => t.id))
+    }
+
     // ---------- Group qualification scoring (group_stage only) ----------
     if (round.name === 'group_stage') {
       const { data: groups } = await supabase.from('groups').select('id, name')
@@ -267,7 +283,8 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
             qual.predicted_1st_team_id,
             qual.predicted_2nd_team_id,
             qual.predicted_3rd_team_id,
-            actualStandings
+            actualStandings,
+            bestThirdQualifiedIds
           )
           await supabase
             .from('group_qualifications')
@@ -279,20 +296,13 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     // ---------- Score best-8 third-place selections (group_stage only) ----------
     if (round.name === 'group_stage') {
-      const { data: advancingThirds } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('best_third_qualified', true)
-
-      const advancingIds = new Set((advancingThirds ?? []).map((t) => t.id))
-
       const { data: thirdSelections } = await supabase
         .from('entry_best_third_selections')
         .select('id, entry_id, team_id')
         .in('entry_id', affectedEntryIds)
 
       for (const sel of thirdSelections ?? []) {
-        const pts = advancingIds.has(sel.team_id) ? 1 : 0
+        const pts = bestThirdQualifiedIds.has(sel.team_id) ? 1 : 0
         await supabase
           .from('entry_best_third_selections')
           .update({ points_awarded: pts, calculated_at: now })

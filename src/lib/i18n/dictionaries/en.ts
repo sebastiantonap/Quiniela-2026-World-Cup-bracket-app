@@ -8,6 +8,7 @@ export const en = {
   'common.pts': 'pts',
   'common.points': 'points',
   'common.team': 'Team',
+  'common.match': 'Match',
   'common.cancel': 'Cancel',
   'common.create': 'Create',
   'common.confirm': 'Confirm',
@@ -185,6 +186,13 @@ export const en = {
   'bracket.groupOther': '{count} groups',
   'bracket.unresolvedSuffix': 'have tied positions that need manual resolution before your bracket is complete.',
 
+  // ---- results ----
+  'results.title': 'Results',
+  'results.total': 'Total',
+  'results.roundTotal': 'Round total',
+  'results.yourPrediction': 'Your prediction',
+  'results.actualResult': 'Actual result',
+
   // ---- best 8 trigger / group stage tab ----
   'best8.title': 'Best 8 Third-Place Teams',
   'best8.tieResolve': 'tie — resolve manually',
@@ -308,6 +316,11 @@ export const en = {
   'admin.history.col.by': 'By',
 
   // ---- admin: knockout slots ----
+  'admin.slots.r32Checklist': 'R32 pre-conditions',
+  'admin.slots.allGroupMatchesConfirmed': 'All {count}/72 group stage matches confirmed',
+  'admin.slots.bestThirdConfirmed': 'Best-8 third-place teams confirmed ({count}/8)',
+  'admin.slots.confirmNow': 'Confirm now',
+  'admin.slots.r32SlotsAssigned': 'R32 matches fully assigned ({count}/16)',
   'admin.slots.canFillOne': '{count} match can be filled from presets (tie / undecided slots are skipped).',
   'admin.slots.canFillOther': '{count} matches can be filled from presets (tie / undecided slots are skipped).',
   'admin.slots.assignAll': 'Assign all presets',

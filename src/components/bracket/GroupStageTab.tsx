@@ -145,6 +145,7 @@ export function GroupStageTab({
           isEditable={isEditable}
           initialSelections={initialThirdPlaceSelections}
           onClose={() => setShowThirdPlaceModal(false)}
+          quals={quals}
         />
       )}
     </div>
