@@ -21,6 +21,7 @@ export async function triggerRecalculation(roundId: string): Promise<{ error?: s
   if (!result.error) {
     revalidatePath('/leaderboard')
     revalidatePath('/dashboard')
+    revalidatePath('/entries', 'layout') // refresh all /entries/[id] bracket pages
   }
   return result
 }

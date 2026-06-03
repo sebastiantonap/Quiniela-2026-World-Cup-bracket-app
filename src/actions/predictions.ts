@@ -57,7 +57,7 @@ export async function upsertPrediction(
   if (!match) return { error: 'Match not found' }
 
   const round = (match as any).rounds
-  if (round.status !== 'accepting_predictions') {
+  if (!round || round.status !== 'accepting_predictions') {
     return { error: 'This round is no longer accepting predictions.' }
   }
 
