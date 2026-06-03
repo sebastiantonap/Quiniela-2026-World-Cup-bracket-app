@@ -67,6 +67,13 @@ export function KnockoutSlotFiller({ rounds, matches, teams, onNavigateToStandin
     return slots[matchId]?.[side] ?? resolved[matchId]?.[side].presetTeamId ?? ''
   }
 
+  // Once a slot's feeding result is decided, show the actual team (e.g. "Winner M73" → "🇧🇷 Brazil")
+  // instead of the raw placeholder. Falls back to the placeholder while still undecided.
+  function slotLabel(placeholder: string | null, slot?: ResolvedSlot): string {
+    const team = slot?.presetTeamId ? teamById.get(slot.presetTeamId) : undefined
+    return team ? `${team.flag_emoji} ${team.name}` : placeholder ?? ''
+  }
+
   function setSlot(matchId: string, side: 'home' | 'away', value: string) {
     setSlots((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: value } }))
   }
@@ -214,8 +221,8 @@ export function KnockoutSlotFiller({ rounds, matches, teams, onNavigateToStandin
             >
               <span className="text-xs text-slate-500">M{match.match_number}</span>
               <div className="flex-1 min-w-0 text-xs text-slate-400">
-                <div>{match.placeholder_home}</div>
-                <div>{match.placeholder_away}</div>
+                <div>{slotLabel(match.placeholder_home, r?.home)}</div>
+                <div>{slotLabel(match.placeholder_away, r?.away)}</div>
               </div>
 
               {filled ? (
