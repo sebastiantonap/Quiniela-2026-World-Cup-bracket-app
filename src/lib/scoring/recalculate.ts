@@ -103,14 +103,34 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         .order('id')
     )
 
-    if (predictions.length === 0) {
+    // Knockout rounds are scored entirely from match predictions, so with none there's
+    // nothing to do. Group stage also scores qualification + best-third picks, which are
+    // independent of match predictions — so we must NOT early-exit there.
+    if (predictions.length === 0 && round.name !== 'group_stage') {
       return { error: 'No predictions found for confirmed matches' }
     }
 
     const now = new Date().toISOString()
 
-    // Derive affected entry IDs up-front so the eligibility query can use them
-    const affectedEntryIds = Array.from(new Set(predictions.map((p) => p.entry_id)))
+    // Derive affected entry IDs up-front so the eligibility query can use them.
+    // For the group stage, entries that only made qualification / best-third picks (and
+    // no match predictions) must still be scored, so union those in below.
+    const affectedEntryIds = new Set(predictions.map((p) => p.entry_id))
+
+    if (round.name === 'group_stage') {
+      const { data: qualEntryRows } = await supabase
+        .from('group_qualifications')
+        .select('entry_id')
+      for (const r of qualEntryRows ?? []) affectedEntryIds.add(r.entry_id)
+
+      const { data: thirdEntryRows } = await supabase
+        .from('entry_best_third_selections')
+        .select('entry_id')
+      for (const r of thirdEntryRows ?? []) affectedEntryIds.add(r.entry_id)
+    }
+
+    // Array form for PostgREST `.in()` filters (the Set is used for iteration/membership).
+    const affectedEntryIdList = Array.from(affectedEntryIds)
 
     // ---------- Build per-entry eligibility map for knockout rounds ----------
     // A team is "yours" for a knockout matchup if you correctly had it advancing into
@@ -130,7 +150,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
       const { data: allQualRows } = await supabase
         .from('group_qualifications')
         .select('entry_id, predicted_1st_team_id, predicted_2nd_team_id')
-        .in('entry_id', affectedEntryIds)
+        .in('entry_id', affectedEntryIdList)
       for (const row of allQualRows ?? []) {
         addEligible(row.entry_id, row.predicted_1st_team_id)
         addEligible(row.entry_id, row.predicted_2nd_team_id)
@@ -139,7 +159,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
       const { data: allThirdRows } = await supabase
         .from('entry_best_third_selections')
         .select('entry_id, team_id')
-        .in('entry_id', affectedEntryIds)
+        .in('entry_id', affectedEntryIdList)
       for (const row of allThirdRows ?? []) {
         addEligible(row.entry_id, row.team_id)
       }
@@ -165,7 +185,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
               .from('predictions')
               .select('entry_id, predicted_winner_team_id')
               .in('match_id', prevMatchIds)
-              .in('entry_id', affectedEntryIds)
+              .in('entry_id', affectedEntryIdList)
             for (const p of prevPreds ?? []) {
               addEligible(p.entry_id, p.predicted_winner_team_id)
             }
@@ -231,8 +251,6 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
         .eq('id', pred.id)
     }
 
-    // affectedEntryIds already declared above
-
     // ---------- Fetch best-8 third-place teams once (used in both qualification scoring and best-8 third selections scoring) ----------
     let bestThirdQualifiedIds = new Set<string>()
     if (round.name === 'group_stage') {
@@ -276,7 +294,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
           .from('group_qualifications')
           .select('id, entry_id, predicted_1st_team_id, predicted_2nd_team_id, predicted_3rd_team_id')
           .eq('group_id', group.id)
-          .in('entry_id', affectedEntryIds)
+          .in('entry_id', affectedEntryIdList)
 
         for (const qual of quals ?? []) {
           const pts = scoreQualification(
@@ -299,7 +317,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
       const { data: thirdSelections } = await supabase
         .from('entry_best_third_selections')
         .select('id, entry_id, team_id')
-        .in('entry_id', affectedEntryIds)
+        .in('entry_id', affectedEntryIdList)
 
       for (const sel of thirdSelections ?? []) {
         const pts = bestThirdQualifiedIds.has(sel.team_id) ? 1 : 0
@@ -311,7 +329,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     }
 
     // ---------- Re-sum total_points (match predictions + qualifications + best-8 thirds) ----------
-    for (const entryId of affectedEntryIds) {
+    for (const entryId of affectedEntryIdList) {
       const { data: allPreds } = await supabase
         .from('predictions')
         .select('points_awarded')
