@@ -1,7 +1,14 @@
+import { redirect } from 'next/navigation'
 import { AuthForm } from '@/components/auth/AuthForm'
+import { getSessionEmail } from '@/lib/session'
 import { getT } from '@/lib/i18n/server'
 
 export default async function LandingPage() {
+  // Only redirect when the session is actually valid (DB-backed), so a stale cookie
+  // falls through to the login form instead of being bounced into a protected page.
+  const email = await getSessionEmail()
+  if (email) redirect('/dashboard')
+
   const { t } = await getT()
 
   const features = [
