@@ -138,6 +138,29 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['user_sessions']['Row'], 'created_at'>
         Update: Partial<Database['public']['Tables']['user_sessions']['Insert']>
       }
+      user_credentials: {
+        Row: {
+          email: string
+          pin_hash: string
+          pin_salt: string
+          failed_attempts: number
+          locked_until: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['user_credentials']['Row'],
+          'failed_attempts' | 'locked_until' | 'created_at' | 'updated_at'
+        > & {
+          failed_attempts?: number
+          locked_until?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['user_credentials']['Insert']> & {
+          failed_attempts?: number
+          locked_until?: string | null
+          updated_at?: string
+        }
+      }
       change_log: {
         Row: {
           id: number

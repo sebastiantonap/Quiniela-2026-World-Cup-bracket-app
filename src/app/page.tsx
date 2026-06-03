@@ -1,4 +1,4 @@
-import { MagicLinkForm } from '@/components/auth/MagicLinkForm'
+import { AuthForm } from '@/components/auth/AuthForm'
 import { getT } from '@/lib/i18n/server'
 
 export default async function LandingPage() {
@@ -43,7 +43,7 @@ export default async function LandingPage() {
           <p className="mb-6 text-sm text-slate-400">
             {t('landing.enterDesc')}
           </p>
-          <MagicLinkForm />
+          <AuthForm />
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-500">
