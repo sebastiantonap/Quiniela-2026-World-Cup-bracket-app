@@ -3,8 +3,7 @@
 import { useState, useMemo } from 'react'
 import { GroupCard } from './GroupCard'
 import { ThirdPlaceSelector } from './ThirdPlaceSelector'
-import { computePredictedStandings } from '@/lib/standings/predictedStandings'
-import { sortThirdPlaceTeams, computeTieZone } from '@/lib/standings/thirdPlaceRanking'
+import { computeEffectiveThirds, computeTieZone } from '@/lib/standings/thirdPlaceRanking'
 import { GROUP_LETTERS } from '@/lib/constants/rounds'
 import { useT } from '@/lib/i18n/I18nProvider'
 import type { MatchWithTeams, Prediction, Team, Group, QualPick } from '@/types/app'
@@ -45,36 +44,14 @@ export function GroupStageTab({
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
   const [showThirdPlaceModal, setShowThirdPlaceModal] = useState(false)
 
-  // Detect whether there's an unresolved tie at the 8/9 third-place boundary
+  // Detect whether there's an unresolved tie at the 8/9 third-place boundary.
+  // Uses the same tie-aware third-place set as the selector modal so the count
+  // and badge here always match what the modal shows.
   const { hasBoundaryTie, predictedThirdCount } = useMemo(() => {
-    const thirds = []
-    for (const letter of GROUP_LETTERS) {
-      const group = groupMap[letter]
-      if (!group) continue
-      const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
-      const { standings, predictedMatchCount } = computePredictedStandings(
-        group.teams,
-        groupMatches,
-        predictions
-      )
-      if (predictedMatchCount === 0 || !standings[2]) continue
-      const s = standings[2]
-      thirds.push({
-        group: letter,
-        teamId: s.team.id,
-        teamName: s.team.name,
-        flagEmoji: s.team.flag_emoji,
-        points: s.points,
-        goals_for: s.goals_for,
-        goals_against: s.goals_against,
-        goal_difference: s.goal_difference,
-      })
-    }
-    const sorted = sortThirdPlaceTeams(thirds)
-    const { hasBoundaryTie } = computeTieZone(sorted)
-    return { hasBoundaryTie, predictedThirdCount: sorted.length }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, groupStageMatches, predictions])
+    const thirds = computeEffectiveThirds(groups, groupStageMatches, predictions, quals)
+    const { hasBoundaryTie } = computeTieZone(thirds)
+    return { hasBoundaryTie, predictedThirdCount: thirds.length }
+  }, [groups, groupStageMatches, predictions, quals])
 
   const confirmedCount = initialThirdPlaceSelections.length
 
