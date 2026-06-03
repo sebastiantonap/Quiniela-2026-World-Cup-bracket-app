@@ -10,6 +10,18 @@ export const ROUND_POINTS: Record<RoundName, { winner: number; bonus: number }> 
   final:         { winner: 16, bonus: 4  },
 }
 
+// Group qualification scoring (per group). Single source of truth shared by the
+// scoring engine (src/lib/scoring/recalculate.ts) and the Rules page, so the points
+// shown to users can never drift from the points actually awarded.
+export const QUALIFICATION_POINTS = {
+  exactFirst: 4,   // 1st-place pick finishes 1st
+  exactSecond: 3,  // 2nd-place pick finishes 2nd
+  exactThird: 2,   // 3rd-place pick finishes 3rd AND is a best-8 qualified third
+  consolation: 1,  // pick still qualifies to the Round of 32, but in a different position
+} as const
+
+export const BEST_THIRD_POINTS = 1 // each correct best-8 third-place selection
+
 export const ROUND_LABELS: Record<RoundName, string> = {
   group_stage:   'Group Stage',
   round_of_32:   'Round of 32',
