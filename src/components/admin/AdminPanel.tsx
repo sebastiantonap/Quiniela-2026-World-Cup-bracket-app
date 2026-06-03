@@ -115,7 +115,7 @@ export function AdminPanel({ rounds, matches, teams, users, syncRuns, changeLogs
 
       {activeTab === 'rounds' && <RoundManager rounds={rounds} />}
       {activeTab === 'results' && <ResultsEntry rounds={rounds} matches={matches} teams={teams} />}
-      {activeTab === 'slots' && <KnockoutSlotFiller rounds={rounds} matches={matches} teams={teams} />}
+      {activeTab === 'slots' && <KnockoutSlotFiller rounds={rounds} matches={matches} teams={teams} onNavigateToStandings={() => setActiveTab('standings')} />}
       {activeTab === 'standings' && <GroupStandings matches={matches} teams={teams} />}
       {activeTab === 'sync' && <SyncPanel syncRuns={syncRuns} hasTeamMapping={hasTeamMapping} hasMatchMapping={hasMatchMapping} driftCount={driftCount} />}
       {activeTab === 'history' && <ChangeHistory logs={changeLogs} matchNumbers={matchNumbers} />}
