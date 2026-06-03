@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { Nav } from '@/components/Nav'
-import { ROUND_POINTS, ROUND_ORDER } from '@/lib/constants/rounds'
+import {
+  ROUND_POINTS,
+  ROUND_ORDER,
+  QUALIFICATION_POINTS,
+  BEST_THIRD_POINTS,
+} from '@/lib/constants/rounds'
 import { getT } from '@/lib/i18n/server'
 import { roundLabel } from '@/lib/i18n/translator'
 import type { RoundName } from '@/types/app'
@@ -119,23 +124,37 @@ export default async function RulesPage() {
           <ul className="space-y-3 text-sm leading-relaxed text-slate-300">
             <li>
               <span className="font-medium text-slate-100">{t('rules.qual.firstLabel')}</span>{' '}
-              {t('rules.qual.firstDesc')}
+              {t('rules.qual.firstDesc', {
+                exact: QUALIFICATION_POINTS.exactFirst,
+                cons: QUALIFICATION_POINTS.consolation,
+              })}
             </li>
             <li>
               <span className="font-medium text-slate-100">{t('rules.qual.secondLabel')}</span>{' '}
-              {t('rules.qual.secondDesc')}
+              {t('rules.qual.secondDesc', {
+                exact: QUALIFICATION_POINTS.exactSecond,
+                cons: QUALIFICATION_POINTS.consolation,
+              })}
             </li>
             <li>
               <span className="font-medium text-slate-100">{t('rules.qual.thirdLabel')}</span>{' '}
-              {t('rules.qual.thirdDesc')}
+              {t('rules.qual.thirdDesc', {
+                exact: QUALIFICATION_POINTS.exactThird,
+                cons: QUALIFICATION_POINTS.consolation,
+              })}
             </li>
           </ul>
+          <p className="mt-4 rounded-xl bg-slate-800/60 p-3 text-sm leading-relaxed text-slate-400">
+            {t('rules.qual.note', { cons: QUALIFICATION_POINTS.consolation })}
+          </p>
         </Panel>
 
         {/* 5. Best 8 third place */}
         <Panel>
           <SectionHeading>{t('rules.best.heading')}</SectionHeading>
-          <p className="text-sm leading-relaxed text-slate-300">{t('rules.best.body')}</p>
+          <p className="text-sm leading-relaxed text-slate-300">
+            {t('rules.best.body', { pts: BEST_THIRD_POINTS })}
+          </p>
         </Panel>
 
         {/* 6. Eligibility gating */}

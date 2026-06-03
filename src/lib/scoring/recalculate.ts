@@ -4,11 +4,20 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
 import { calculatePoints } from './engine'
 import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND } from './knockoutEligibility'
-import { ROUND_POINTS } from '@/lib/constants/rounds'
+import { ROUND_POINTS, QUALIFICATION_POINTS, BEST_THIRD_POINTS } from '@/lib/constants/rounds'
 import { computeGroupStandings } from '@/lib/standings/groupStandings'
 import type { RoundName, Team, MatchWithTeams } from '@/types/app'
 
-// Qualification scoring per group
+// Qualification scoring per group. Point values come from QUALIFICATION_POINTS so the
+// Rules page and this engine never drift. The rule:
+//   - exactFirst  (4): 1st-place pick finishes 1st
+//   - exactSecond (3): 2nd-place pick finishes 2nd
+//   - exactThird  (2): 3rd-place pick finishes 3rd AND that team is a best-8 qualified
+//                      third. A 3rd-place team that does NOT make the best 8 scores 0.
+//   - consolation (1): any pick that still qualifies to the Round of 32 — as group
+//                      winner, runner-up, or a best-8 third — but in a different
+//                      position than predicted.
+// A pick whose team fails to qualify to the Round of 32 scores nothing.
 function scoreQualification(
   predicted1st: string | null,
   predicted2nd: string | null,
@@ -24,23 +33,23 @@ function scoreQualification(
   let pts = 0
 
   if (predicted1st) {
-    if (predicted1st === actual1st) pts += 4
-    else if (qualifyingIds.includes(predicted1st)) pts += 1
-    else if (predicted1st === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += 1
+    if (predicted1st === actual1st) pts += QUALIFICATION_POINTS.exactFirst
+    else if (qualifyingIds.includes(predicted1st)) pts += QUALIFICATION_POINTS.consolation
+    else if (predicted1st === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += QUALIFICATION_POINTS.consolation
   }
 
   if (predicted2nd) {
-    if (predicted2nd === actual2nd) pts += 3
-    else if (qualifyingIds.includes(predicted2nd)) pts += 1
-    else if (predicted2nd === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += 1
+    if (predicted2nd === actual2nd) pts += QUALIFICATION_POINTS.exactSecond
+    else if (qualifyingIds.includes(predicted2nd)) pts += QUALIFICATION_POINTS.consolation
+    else if (predicted2nd === actual3rd && bestThirdQualifiedIds.has(actual3rd)) pts += QUALIFICATION_POINTS.consolation
   }
 
   if (predicted3rd && actual3rd) {
     if (predicted3rd === actual3rd) {
-      // only award 2 pts if team actually qualified as a best-8 third
-      if (bestThirdQualifiedIds.has(actual3rd)) pts += 2
+      // only award the exact-3rd points if the team actually qualified as a best-8 third
+      if (bestThirdQualifiedIds.has(actual3rd)) pts += QUALIFICATION_POINTS.exactThird
     } else if (qualifyingIds.includes(predicted3rd)) {
-      pts += 1
+      pts += QUALIFICATION_POINTS.consolation
     }
   }
 
@@ -365,7 +374,7 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
       )
 
       for (const sel of thirdSelections) {
-        const pts = bestThirdQualifiedIds.has(sel.team_id) ? 1 : 0
+        const pts = bestThirdQualifiedIds.has(sel.team_id) ? BEST_THIRD_POINTS : 0
         await supabase
           .from('entry_best_third_selections')
           .update({ points_awarded: pts, calculated_at: now })
