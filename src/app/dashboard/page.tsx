@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { getSessionEmail } from '@/lib/session'
 import { getEntries } from '@/actions/entries'
 import { Nav } from '@/components/Nav'
@@ -7,7 +8,11 @@ import { getT } from '@/lib/i18n/server'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
+  // A stale cookie passes the middleware (presence-only) check but has no valid session;
+  // send those users to the landing/login page instead of rendering a broken dashboard.
   const email = await getSessionEmail()
+  if (!email) redirect('/')
+
   const entries = await getEntries()
   const { t } = await getT()
 

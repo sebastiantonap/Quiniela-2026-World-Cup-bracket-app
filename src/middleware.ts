@@ -14,12 +14,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (pathname === '/' && session) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
+  // NOTE: we intentionally do NOT redirect '/' → '/dashboard' on cookie presence here.
+  // The cookie can be stale (e.g. the session row was deleted), and middleware can't
+  // cheaply validate it against the DB. Bouncing a stale cookie to /dashboard would trap
+  // the user on a page with no valid session and no sign-out button. Instead the landing
+  // page validates the session server-side and redirects only when it's actually valid.
   return NextResponse.next()
 }
 
