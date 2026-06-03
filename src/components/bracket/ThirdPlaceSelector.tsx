@@ -2,15 +2,13 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import {
-  sortThirdPlaceTeams,
+  computeEffectiveThirds,
   computeTieZone,
   getRowStatus,
   type ThirdPlaceEntry,
 } from '@/lib/standings/thirdPlaceRanking'
 import { upsertThirdPlaceSelections } from '@/actions/thirdPlaceSelections'
-import { GROUP_LETTERS } from '@/lib/constants/rounds'
 import { useT } from '@/lib/i18n/I18nProvider'
 import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Prediction, Team, Group, QualState } from '@/types/app'
@@ -39,47 +37,12 @@ export function ThirdPlaceSelector({
   const t = useT()
   const groupStageMatches = matches.filter((m) => m.round?.name === 'group_stage')
 
-  // Compute predicted 3rd-place teams for each group
-  const thirdPlaceTeams = useMemo<ThirdPlaceEntry[]>(() => {
-    const entries: ThirdPlaceEntry[] = []
-
-    for (const letter of GROUP_LETTERS) {
-      const group = groups.find((g) => g.name === letter)
-      if (!group) continue
-
-      const groupMatches = groupStageMatches.filter((m) => m.group?.name === letter)
-      const { standings, ambiguities, predictedMatchCount } = computePredictedStandings(
-        group.teams,
-        groupMatches,
-        predictions
-      )
-
-      if (predictedMatchCount === 0 || !standings[2]) continue
-
-      // When 3rd is tied with 2nd or 4th, prefer the user's explicit pick over standings[2]
-      const userPick3rd = quals[group.id]?.predicted3rd ?? null
-      const hasTie = ambiguities.second || ambiguities.third
-      const effectiveTeamId =
-        hasTie && userPick3rd
-          ? userPick3rd
-          : standings[2].team.id
-
-      const s = standings.find((st) => st.team.id === effectiveTeamId) ?? standings[2]
-      entries.push({
-        group: letter,
-        teamId: s.team.id,
-        teamName: s.team.name,
-        flagEmoji: s.team.flag_emoji,
-        points: s.points,
-        goals_for: s.goals_for,
-        goals_against: s.goals_against,
-        goal_difference: s.goal_difference,
-      })
-    }
-
-    return sortThirdPlaceTeams(entries)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, groupStageMatches, predictions, quals])
+  // Predicted 3rd-place teams for each group (tie-aware, user pick wins) — shared
+  // with the group-stage tab so both views agree on the set.
+  const thirdPlaceTeams = useMemo<ThirdPlaceEntry[]>(
+    () => computeEffectiveThirds(groups, groupStageMatches, predictions, quals),
+    [groups, groupStageMatches, predictions, quals]
+  )
 
   const { tieZoneStart, tieZoneEnd, hasBoundaryTie } = useMemo(
     () => computeTieZone(thirdPlaceTeams),
