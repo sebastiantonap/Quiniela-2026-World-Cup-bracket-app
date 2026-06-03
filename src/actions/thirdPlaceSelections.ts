@@ -2,9 +2,16 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
+import { resolveEntryVisibility } from '@/lib/entries/visibility'
 
 export async function getThirdPlaceSelectionsForEntry(entryId: string): Promise<string[]> {
   const supabase = getSupabaseAdminClient()
+
+  // Best-third picks belong to the group stage — hide them from competitors until the
+  // group-stage round is locked.
+  const { revealedRounds } = await resolveEntryVisibility(entryId)
+  if (!revealedRounds.has('group_stage')) return []
+
   const { data } = await supabase
     .from('entry_best_third_selections')
     .select('team_id')

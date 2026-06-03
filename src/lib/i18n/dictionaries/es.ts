@@ -181,6 +181,7 @@ export const es: Dictionary = {
   'bracket.roundNotOpen': 'Esta ronda aún no ha abierto. Vuelve pronto.',
   'bracket.roundLocked': 'Los pronósticos están bloqueados para esta ronda. Se están ingresando los resultados.',
   'bracket.roundCompleted': 'Esta ronda está completa. Los puntajes ya fueron calculados.',
+  'bracket.hiddenUntilLocked': 'Las selecciones de este jugador para esta ronda permanecen ocultas hasta que la ronda se bloquee.',
   'bracket.groupOne': '{count} grupo',
   'bracket.groupOther': '{count} grupos',
   'bracket.unresolvedSuffix': 'tienen posiciones empatadas que necesitan resolverse manualmente antes de que tu cuadro esté completo.',

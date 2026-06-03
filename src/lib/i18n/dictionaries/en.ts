@@ -183,6 +183,7 @@ export const en = {
   'bracket.roundNotOpen': "This round hasn't opened yet. Check back soon.",
   'bracket.roundLocked': 'Predictions are locked for this round. Results are being entered.',
   'bracket.roundCompleted': 'This round is complete. Scores have been calculated.',
+  'bracket.hiddenUntilLocked': "This player's picks for this round stay hidden until the round locks.",
   'bracket.groupOne': '{count} group',
   'bracket.groupOther': '{count} groups',
   'bracket.unresolvedSuffix': 'have tied positions that need manual resolution before your bracket is complete.',

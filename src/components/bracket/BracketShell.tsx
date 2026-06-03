@@ -24,6 +24,9 @@ interface BracketShellProps {
   initialThirdPlaceSelections: string[]
   entryTotalPoints: number
   readOnly?: boolean
+  /** Rounds whose picks the viewer may see. Owners/admins get all; others only locked
+   *  rounds. Defaults to every round so the owner/edit flow is unaffected. */
+  revealedRounds?: RoundName[]
 }
 
 export function BracketShell({
@@ -36,12 +39,17 @@ export function BracketShell({
   initialThirdPlaceSelections,
   entryTotalPoints,
   readOnly = false,
+  revealedRounds = ROUND_ORDER,
 }: BracketShellProps) {
   const t = useT()
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
+  const revealedSet = useMemo(() => new Set(revealedRounds), [revealedRounds])
 
-  const defaultTab =
-    ROUND_ORDER.find((r) => roundMap[r]?.status === 'accepting_predictions') ?? 'group_stage'
+  // Owners/editors land on the round currently accepting predictions. Read-only viewers
+  // can't see open rounds, so default them to the latest round they're allowed to see.
+  const defaultTab = readOnly
+    ? [...ROUND_ORDER].reverse().find((r) => roundMap[r] && revealedSet.has(r)) ?? 'group_stage'
+    : ROUND_ORDER.find((r) => roundMap[r]?.status === 'accepting_predictions') ?? 'group_stage'
   const [activeRound, setActiveRound] = useState<RoundName | 'results'>(defaultTab as RoundName)
 
   const { predictions, updatePrediction, saving, errors } = usePredictions(entryId, initialPredictions)
@@ -86,6 +94,10 @@ export function BracketShell({
   const activeRoundData = roundMap[activeRound]
   const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
   const activeMatches = activeRound === 'results' ? [] : matchesByRound[activeRound] ?? []
+
+  // For a competitor's bracket, rounds that haven't locked yet stay hidden.
+  const activeRoundHidden =
+    readOnly && activeRound !== 'results' && !revealedSet.has(activeRound as RoundName)
 
   // Per-match knockout eligibility for the active round. A team is "yours" if you correctly
   // had it advancing into this round: group picks feed Round of 32, then each round keys off
@@ -173,7 +185,7 @@ export function BracketShell({
       </div>
 
       {/* Status banners */}
-      {!isEditable && activeRoundData?.status === 'pending' && (
+      {!isEditable && !activeRoundHidden && activeRoundData?.status === 'pending' && (
         <div className="mb-4 rounded-xl bg-slate-800 px-4 py-3 text-sm text-slate-400 border border-slate-700">
           {t('bracket.roundNotOpen')}
         </div>
@@ -196,6 +208,10 @@ export function BracketShell({
           rounds={rounds}
           totalPoints={entryTotalPoints}
         />
+      ) : activeRoundHidden ? (
+        <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-8 text-center text-sm text-slate-400">
+          {t('bracket.hiddenUntilLocked')}
+        </div>
       ) : activeRound === 'group_stage' ? (
         <GroupStageTab
           entryId={entryId}
