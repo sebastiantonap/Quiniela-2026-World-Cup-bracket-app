@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addAdmin, removeAdmin } from '@/actions/admin/manageAdmins'
+import { resetUserPin } from '@/actions/admin/users'
 import { adminDeleteEntry } from '@/actions/entries'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/lib/i18n/I18nProvider'
@@ -20,6 +21,7 @@ export function UserManager({ users }: UserManagerProps) {
   const [addLoading, setAddLoading] = useState(false)
   const [removeLoading, setRemoveLoading] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
+  const [resetPinLoading, setResetPinLoading] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
   const router = useRouter()
 
@@ -49,6 +51,22 @@ export function UserManager({ users }: UserManagerProps) {
       router.refresh()
     }
     setRemoveLoading(null)
+  }
+
+  async function handleResetPin(email: string) {
+    const confirmed = window.confirm(t('admin.users.resetCodeConfirm', { email }))
+    if (!confirmed) return
+
+    setResetPinLoading(email)
+    setFeedback('')
+    const result = await resetUserPin(email)
+    if (result.error) {
+      setFeedback(result.error)
+    } else {
+      setFeedback(t('admin.users.codeReset', { email }))
+      router.refresh()
+    }
+    setResetPinLoading(null)
   }
 
   async function handleDeleteEntry(entryId: string, entryName: string, userEmail: string) {
@@ -120,6 +138,17 @@ export function UserManager({ users }: UserManagerProps) {
                   ) : (
                     <span className="text-xs text-slate-500">{t('admin.users.user')}</span>
                   )}
+                  <div className="mt-1">
+                    {user.hasPin ? (
+                      <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-medium text-green-400">
+                        {t('admin.users.codeSet')}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-slate-600/40 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                        {t('admin.users.noCode')}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-slate-300">
                   {user.entries.length === 0 ? (
@@ -192,17 +221,30 @@ export function UserManager({ users }: UserManagerProps) {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  {user.isDbAdmin && !user.isEnvAdmin && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      loading={removeLoading === user.email}
-                      onClick={() => handleRemoveAdmin(user.email)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      {t('admin.users.removeAdmin')}
-                    </Button>
-                  )}
+                  <div className="flex flex-col items-start gap-1">
+                    {user.isDbAdmin && !user.isEnvAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={removeLoading === user.email}
+                        onClick={() => handleRemoveAdmin(user.email)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        {t('admin.users.removeAdmin')}
+                      </Button>
+                    )}
+                    {user.hasPin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={resetPinLoading === user.email}
+                        onClick={() => handleResetPin(user.email)}
+                        className="text-amber-400 hover:text-amber-300"
+                      >
+                        {t('admin.users.resetCode')}
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -73,13 +73,26 @@ export const en = {
   'landing.feature.earnPoints': 'Earn points',
   'landing.feature.beatTable': 'Beat the table',
   'landing.enterToPlay': 'Enter to play',
-  'landing.enterDesc': 'Just your email — no password, no confirmation needed.',
+  'landing.enterDesc': 'Sign in with your email and a 4-digit code. New here? Pick a code to protect your account.',
   'landing.maxBrackets': 'Max 2 brackets per email address.',
 
   // ---- auth ----
   'auth.emailLabel': 'Email address',
   'auth.emailPlaceholder': 'you@example.com',
   'auth.enter': 'Enter →',
+  'auth.continue': 'Continue →',
+  'auth.pinLabel': '4-digit code',
+  'auth.pinConfirmLabel': 'Confirm code',
+  'auth.setPinHint': 'Choose a 4-digit code to protect',
+  'auth.enterPinHint': 'Enter the 4-digit code for',
+  'auth.signInCta': 'Sign in',
+  'auth.createCta': 'Create account',
+  'auth.useDifferentEmail': 'Use a different email',
+  'auth.error.invalidEmail': 'Please enter a valid email address.',
+  'auth.error.invalidPin': 'Your code must be exactly 4 digits.',
+  'auth.error.pinMismatch': "The two codes don't match.",
+  'auth.error.incorrect': 'Incorrect email or code.',
+  'auth.error.locked': 'Too many attempts. Try again in a few minutes.',
 
   // ---- dashboard ----
   'dashboard.noBracketsTitle': 'No brackets yet',
@@ -361,6 +374,11 @@ export const en = {
   'admin.users.deleteEntry': 'Delete',
   'admin.users.deleteEntryConfirm': 'Delete entry "{name}" from {email}? This removes all predictions and cannot be undone.',
   'admin.users.entryDeleted': 'Entry "{name}" deleted',
+  'admin.users.codeSet': 'Code set',
+  'admin.users.noCode': 'No code',
+  'admin.users.resetCode': 'Reset code',
+  'admin.users.resetCodeConfirm': 'Reset the 4-digit code for {email}? They will choose a new one on next login and any active session ends.',
+  'admin.users.codeReset': 'Code reset for {email}',
 
   // ---- admin: clear all ----
   'admin.clearAll': 'Clear All Results',

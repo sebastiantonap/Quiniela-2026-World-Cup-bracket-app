@@ -71,13 +71,26 @@ export const es: Dictionary = {
   'landing.feature.earnPoints': 'Gana puntos',
   'landing.feature.beatTable': 'Domina la tabla',
   'landing.enterToPlay': 'Entra para jugar',
-  'landing.enterDesc': 'Solo tu correo — sin contraseña ni confirmación.',
+  'landing.enterDesc': 'Inicia sesión con tu correo y un código de 4 dígitos. ¿Nuevo? Elige un código para proteger tu cuenta.',
   'landing.maxBrackets': 'Máximo 2 cuadros por correo electrónico.',
 
   // ---- auth ----
   'auth.emailLabel': 'Correo electrónico',
   'auth.emailPlaceholder': 'tu@ejemplo.com',
   'auth.enter': 'Entrar →',
+  'auth.continue': 'Continuar →',
+  'auth.pinLabel': 'Código de 4 dígitos',
+  'auth.pinConfirmLabel': 'Confirma el código',
+  'auth.setPinHint': 'Elige un código de 4 dígitos para proteger',
+  'auth.enterPinHint': 'Ingresa el código de 4 dígitos de',
+  'auth.signInCta': 'Iniciar sesión',
+  'auth.createCta': 'Crear cuenta',
+  'auth.useDifferentEmail': 'Usar otro correo',
+  'auth.error.invalidEmail': 'Ingresa un correo electrónico válido.',
+  'auth.error.invalidPin': 'Tu código debe tener exactamente 4 dígitos.',
+  'auth.error.pinMismatch': 'Los dos códigos no coinciden.',
+  'auth.error.incorrect': 'Correo o código incorrecto.',
+  'auth.error.locked': 'Demasiados intentos. Inténtalo de nuevo en unos minutos.',
 
   // ---- dashboard ----
   'dashboard.noBracketsTitle': 'Aún no hay cuadros',
@@ -359,6 +372,11 @@ export const es: Dictionary = {
   'admin.users.deleteEntry': 'Eliminar',
   'admin.users.deleteEntryConfirm': '¿Eliminar el cuadro "{name}" de {email}? Esto borra todos los pronósticos y no se puede deshacer.',
   'admin.users.entryDeleted': 'Cuadro "{name}" eliminado',
+  'admin.users.codeSet': 'Código activo',
+  'admin.users.noCode': 'Sin código',
+  'admin.users.resetCode': 'Restablecer código',
+  'admin.users.resetCodeConfirm': '¿Restablecer el código de 4 dígitos de {email}? Elegirá uno nuevo en su próximo inicio de sesión y se cerrará cualquier sesión activa.',
+  'admin.users.codeReset': 'Código restablecido para {email}',
 
   // ---- admin: clear all ----
   'admin.clearAll': 'Borrar Todos los Resultados',

@@ -3,6 +3,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
+import { revalidatePath } from 'next/cache'
 import type { RoundName, RoundStatus } from '@/types/app'
 
 export interface RoundCompleteness {
@@ -26,6 +27,7 @@ export interface AdminUserRow {
   email: string
   isDbAdmin: boolean
   isEnvAdmin: boolean
+  hasPin: boolean
   entries: AdminEntryRow[]
 }
 
@@ -42,6 +44,7 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
     { data: predictions },
     { data: sessions },
     { data: dbAdmins },
+    { data: credentials },
   ] = await Promise.all([
     supabase.from('entries').select('id, user_email, name, total_points, created_at').order('user_email'),
     supabase.from('rounds').select('id, name, status, sort_order').order('sort_order'),
@@ -51,6 +54,7 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
       .select('entry_id, match_id, predicted_home, predicted_away'),
     supabase.from('user_sessions').select('email').order('created_at'),
     supabase.from('admins').select('email'),
+    supabase.from('user_credentials').select('email'),
   ])
 
   const envAdmins = (process.env.ADMIN_EMAIL ?? '')
@@ -59,6 +63,7 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
     .filter(Boolean)
 
   const dbAdminEmails = new Set((dbAdmins ?? []).map((r) => r.email.toLowerCase()))
+  const pinEmails = new Set((credentials ?? []).map((r) => r.email.toLowerCase()))
 
   // Match counts per round
   const matchCountByRound: Record<string, number> = {}
@@ -104,6 +109,7 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
         email: userEmail,
         isDbAdmin: dbAdminEmails.has(userEmail),
         isEnvAdmin: envAdmins.includes(userEmail),
+        hasPin: pinEmails.has(userEmail),
         entries: userEntries.map((entry) => ({
           id: entry.id,
           name: entry.name,
@@ -122,4 +128,27 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
     })
 
   return { data: users }
+}
+
+/**
+ * Clear a user's 4-digit code so they can set a new one on next login. Also drops their
+ * active sessions so a forgotten/compromised code can't keep an existing session alive.
+ */
+export async function resetUserPin(email: string): Promise<{ error?: string }> {
+  const adminEmail = await getSessionEmail()
+  if (!await isAdmin(adminEmail)) return { error: 'Unauthorized' }
+
+  const normalized = email.trim().toLowerCase()
+  const supabase = getSupabaseAdminClient()
+
+  const { error: credError } = await supabase
+    .from('user_credentials')
+    .delete()
+    .eq('email', normalized)
+  if (credError) return { error: credError.message }
+
+  await supabase.from('user_sessions').delete().eq('email', normalized)
+
+  revalidatePath('/admin')
+  return {}
 }
