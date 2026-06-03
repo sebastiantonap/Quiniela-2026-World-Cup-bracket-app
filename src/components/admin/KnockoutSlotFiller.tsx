@@ -18,9 +18,10 @@ interface KnockoutSlotFillerProps {
   rounds: Round[]
   matches: MatchWithTeams[]
   teams: Team[]
+  onNavigateToStandings?: () => void
 }
 
-export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFillerProps) {
+export function KnockoutSlotFiller({ rounds, matches, teams, onNavigateToStandings }: KnockoutSlotFillerProps) {
   const t = useT()
   const knockoutRounds: RoundName[] = ['round_of_32', 'round_of_16', 'quarterfinals', 'semifinals', 'third_place', 'final']
   const roundMap = Object.fromEntries(rounds.map((r) => [r.name, r]))
@@ -145,16 +146,9 @@ export function KnockoutSlotFiller({ rounds, matches, teams }: KnockoutSlotFille
               <span className={bestThirdConfirmed ? 'text-slate-300' : 'text-slate-400'}>
                 {t('admin.slots.bestThirdConfirmed', { count: bestThirdCount })}
               </span>
-              {!bestThirdConfirmed && (
+              {!bestThirdConfirmed && onNavigateToStandings && (
                 <button
-                  onClick={() => {
-                    const tabs = document.querySelectorAll('button')
-                    tabs.forEach((tab) => {
-                      if (tab.textContent?.includes('Standings')) {
-                    ;(tab as HTMLButtonElement).click()
-                      }
-                    })
-                  }}
+                  onClick={onNavigateToStandings}
                   className="ml-2 text-amber-400 hover:text-amber-300 underline"
                 >
                   → {t('admin.slots.confirmNow')}
