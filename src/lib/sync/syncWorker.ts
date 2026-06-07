@@ -246,6 +246,11 @@ export async function runSync(): Promise<SyncResult> {
   return result
 }
 
+// Known TLA mismatches between football-data.org and local DB
+const TLA_ALIASES: Record<string, string> = {
+  URY: 'URU', // football-data.org uses URY, local uses URU for Uruguay
+}
+
 export async function seedTeamMapping(): Promise<{ mapped: number; unmatched: string[] }> {
   const supabase = getSupabaseAdminClient()
   const apiTeams = await fetchWCTeams()
@@ -265,7 +270,8 @@ export async function seedTeamMapping(): Promise<{ mapped: number; unmatched: st
   const unmatched: string[] = []
 
   for (const apiTeam of apiTeams) {
-    const local = localByCode.get(apiTeam.tla.toUpperCase())
+    const tla = apiTeam.tla.toUpperCase()
+    const local = localByCode.get(tla) ?? localByCode.get(TLA_ALIASES[tla] ?? '')
     if (local) {
       if (local.fd_team_id !== apiTeam.id) {
         await supabase
@@ -322,7 +328,9 @@ export async function seedMatchMapping(): Promise<{ mapped: number; unmatched: n
       continue
     }
 
+    // Try both orderings — API may have home/away swapped vs local DB
     const local = byTeamPair.get(`${homeUuid}|${awayUuid}`)
+      ?? byTeamPair.get(`${awayUuid}|${homeUuid}`)
     if (!local) {
       unmatched++
       continue
