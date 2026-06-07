@@ -353,6 +353,9 @@ export const es: Dictionary = {
   'admin.standings.footerTie': 'Marca/desmarca equipos empatados hasta que haya exactamente 8 seleccionados',
   'admin.standings.footerNoTie': 'Ordenado por Pts → DG → GF | Confirma para fijar los 8 clasificados',
   'admin.standings.confirmQualifiers': 'Confirmar clasificados',
+  'admin.standings.confirmOrder': 'Confirmar orden',
+  'admin.standings.orderConfirmed': 'Orden confirmado',
+  'admin.standings.tieNotice': 'Empate detectado — usa las flechas para definir el orden oficial, luego confirma.',
 
   // ---- admin: users ----
   'admin.users.addAdmin': 'Agregar Admin',

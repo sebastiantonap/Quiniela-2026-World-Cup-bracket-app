@@ -3,6 +3,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
+import { recalculateRound } from '@/lib/scoring/recalculate'
 import { revalidatePath } from 'next/cache'
 
 export async function confirmThirdPlaceQualifiers(teamIds: string[]): Promise<{ error?: string }> {
@@ -26,6 +27,22 @@ export async function confirmThirdPlaceQualifiers(teamIds: string[]): Promise<{ 
 
   if (markError) return { error: markError.message }
 
+  // Auto-recalculate group_stage so qualification points reflect the
+  // just-confirmed best-8 thirds immediately (fixes scoring for exact-3rd
+  // picks and consolation points for picks whose team is a qualified third).
+  const { data: gsRound } = await supabase
+    .from('rounds')
+    .select('id')
+    .eq('name', 'group_stage')
+    .single()
+
+  if (gsRound) {
+    await recalculateRound(gsRound.id)
+  }
+
   revalidatePath('/admin')
+  revalidatePath('/leaderboard')
+  revalidatePath('/dashboard')
+  revalidatePath('/entries', 'layout')
   return {}
 }

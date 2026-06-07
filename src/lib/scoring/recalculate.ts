@@ -325,8 +325,19 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
         if (groupMatches.length < 6) continue // not all confirmed
 
-        const standings = computeGroupStandings(teams, groupMatches)
-        const actualStandings = standings.map((s) => ({ teamId: s.team.id }))
+        // Prefer admin-confirmed positions when every team in the group has one.
+        // This handles cases where the deterministic sort (Pts → GD → GF → name)
+        // disagrees with FIFA's official tiebreaker (H2H, fair play, drawing of
+        // lots) that the app cannot compute.
+        const allConfirmed = teams.length > 0 && teams.every(t => t.confirmed_position !== null)
+        let actualStandings: { teamId: string }[]
+        if (allConfirmed) {
+          const sorted = [...teams].sort((a, b) => a.confirmed_position! - b.confirmed_position!)
+          actualStandings = sorted.map(t => ({ teamId: t.id }))
+        } else {
+          const standings = computeGroupStandings(teams, groupMatches)
+          actualStandings = standings.map((s) => ({ teamId: s.team.id }))
+        }
 
         const quals = await fetchAllRows<{
           id: string
