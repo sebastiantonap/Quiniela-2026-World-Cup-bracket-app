@@ -245,6 +245,12 @@ export async function clearAllResults(): Promise<{ error?: string }> {
 
   if (!rpcError) {
     // RPC succeeded — every step ran in a single transaction.
+    // Clear confirmed_position (added after the RPC was created).
+    const { error: posErr } = await admin
+      .from('teams')
+      .update({ confirmed_position: null })
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (posErr) return { error: posErr.message }
   } else if (rpcError.message?.includes('schema cache')) {
     // Function not yet deployed — execute the same steps inline.
 
@@ -279,11 +285,11 @@ export async function clearAllResults(): Promise<{ error?: string }> {
       if (e2) return { error: e2.message }
     }
 
-    // 3. Reset best-third-qualified flags on all teams
+    // 3. Reset best-third-qualified flags and confirmed standings on all teams
     const { error: e3 } = await admin
       .from('teams')
-      .update({ best_third_qualified: false })
-      .eq('best_third_qualified', true)
+      .update({ best_third_qualified: false, confirmed_position: null })
+      .neq('id', '00000000-0000-0000-0000-000000000000')
 
     if (e3) return { error: e3.message }
 

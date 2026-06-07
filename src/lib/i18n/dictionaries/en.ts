@@ -355,6 +355,9 @@ export const en = {
   'admin.standings.footerTie': 'Check/uncheck tied teams until exactly 8 are selected',
   'admin.standings.footerNoTie': 'Ranked by Pts → GD → GF | Confirm to lock in the 8 qualifiers',
   'admin.standings.confirmQualifiers': 'Confirm qualifiers',
+  'admin.standings.confirmOrder': 'Confirm order',
+  'admin.standings.orderConfirmed': 'Order confirmed',
+  'admin.standings.tieNotice': 'Tie detected — use arrows to set the official order, then confirm.',
 
   // ---- admin: users ----
   'admin.users.addAdmin': 'Add Admin',

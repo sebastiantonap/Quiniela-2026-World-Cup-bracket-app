@@ -29,6 +29,7 @@ export interface Database {
           flag_emoji: string | null
           group_id: string | null
           best_third_qualified: boolean
+          confirmed_position: number | null
           fd_team_id: number | null
           created_at: string
         }
