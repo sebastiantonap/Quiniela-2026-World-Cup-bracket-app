@@ -56,12 +56,10 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
         error ? 'bg-red-900/20' : 'hover:bg-slate-700/40'
       }`}
     >
-      {/* Date */}
-      {dateLabel && (
-        <span className="w-10 flex-shrink-0 text-[10px] tabular-nums text-slate-500">
-          {dateLabel}
-        </span>
-      )}
+      {/* Date — always reserve space so rows stay aligned */}
+      <span className="w-10 flex-shrink-0 text-[10px] tabular-nums text-slate-500">
+        {dateLabel ?? ''}
+      </span>
 
       {/* Home team */}
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
