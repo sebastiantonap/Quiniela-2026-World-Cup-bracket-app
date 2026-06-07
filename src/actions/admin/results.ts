@@ -246,10 +246,11 @@ export async function clearAllResults(): Promise<{ error?: string }> {
   if (!rpcError) {
     // RPC succeeded — every step ran in a single transaction.
     // Clear confirmed_position (added after the RPC was created).
-    await admin
+    const { error: posErr } = await admin
       .from('teams')
       .update({ confirmed_position: null })
       .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (posErr) return { error: posErr.message }
   } else if (rpcError.message?.includes('schema cache')) {
     // Function not yet deployed — execute the same steps inline.
 
