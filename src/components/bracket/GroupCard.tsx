@@ -134,9 +134,14 @@ export function GroupCard({
         <span className="text-xs text-slate-500">{predictedMatchCount}/{totalMatchCount} {t('group.matches')}</span>
       </div>
 
-      {/* Match score inputs */}
+      {/* Match score inputs — sorted chronologically */}
       <div className="divide-y divide-slate-700/50 px-2 py-2">
-        {matches.map((match) => (
+        {[...matches].sort((a, b) => {
+          if (a.scheduled_at && b.scheduled_at) return a.scheduled_at < b.scheduled_at ? -1 : a.scheduled_at > b.scheduled_at ? 1 : 0
+          if (a.scheduled_at) return -1
+          if (b.scheduled_at) return 1
+          return (a.match_number ?? 0) - (b.match_number ?? 0)
+        }).map((match) => (
           <MatchRow
             key={match.id}
             match={match}
