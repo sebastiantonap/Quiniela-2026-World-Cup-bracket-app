@@ -123,12 +123,17 @@ export async function runSync(): Promise<SyncResult> {
 
       const ft = apiMatch.score.fullTime
 
+      // Detect if API home/away order is swapped relative to local match
+      const apiHomeUuid = apiMatch.homeTeam.id ? teamByFdId.get(apiMatch.homeTeam.id) ?? null : null
+      const swapped = apiHomeUuid !== null && apiHomeUuid !== local.home_team_id
+
       // Always update api_* columns, scheduled_at, and last_synced_at
+      // api_home_score/api_away_score refer to the local match's home/away
       await supabase
         .from('matches')
         .update({
-          api_home_score: ft.home,
-          api_away_score: ft.away,
+          api_home_score: swapped ? ft.away : ft.home,
+          api_away_score: swapped ? ft.home : ft.away,
           api_status: apiMatch.status,
           scheduled_at: apiMatch.utcDate,
           last_synced_at: now,
@@ -151,7 +156,7 @@ export async function runSync(): Promise<SyncResult> {
 
       // Determine winner
       let winnerTeamId: string | null = null
-      const homeTeamUuid = apiMatch.homeTeam.id ? teamByFdId.get(apiMatch.homeTeam.id) ?? null : null
+      const homeTeamUuid = apiHomeUuid
       const awayTeamUuid = apiMatch.awayTeam.id ? teamByFdId.get(apiMatch.awayTeam.id) ?? null : null
 
       if (ft.home !== null && ft.away !== null) {
@@ -168,19 +173,19 @@ export async function runSync(): Promise<SyncResult> {
         }
       }
 
-      // Penalty scores
+      // Penalty scores — swap to match local home/away order
       const pens = apiMatch.score.penalties
       const homePens = pens.home !== null ? pens.home : null
       const awayPens = pens.away !== null ? pens.away : null
 
-      // Update match
+      // Update match — scores written relative to local match's home/away
       await supabase
         .from('matches')
         .update({
-          home_score: ft.home,
-          away_score: ft.away,
-          home_penalties: homePens,
-          away_penalties: awayPens,
+          home_score: swapped ? ft.away : ft.home,
+          away_score: swapped ? ft.home : ft.away,
+          home_penalties: swapped ? awayPens : homePens,
+          away_penalties: swapped ? homePens : awayPens,
           winner_team_id: winnerTeamId,
           result_confirmed: true,
         })
