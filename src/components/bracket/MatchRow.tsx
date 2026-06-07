@@ -30,6 +30,16 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
   const hasResult = match.result_confirmed && match.home_score !== null
   const pts = prediction?.points_awarded
 
+  // Format scheduled_at as dd/mm
+  const dateLabel = match.scheduled_at
+    ? (() => {
+        const d = new Date(match.scheduled_at)
+        const dd = String(d.getUTCDate()).padStart(2, '0')
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+        return `${dd}/${mm}`
+      })()
+    : null
+
   function handleHomeChange(val: number | null) {
     setLocalHome(val)
     onUpdate(val, localAway)
@@ -46,6 +56,13 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
         error ? 'bg-red-900/20' : 'hover:bg-slate-700/40'
       }`}
     >
+      {/* Date */}
+      {dateLabel && (
+        <span className="w-10 flex-shrink-0 text-[10px] tabular-nums text-slate-500">
+          {dateLabel}
+        </span>
+      )}
+
       {/* Home team */}
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
         <span className="truncate text-right font-medium text-slate-200">

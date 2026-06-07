@@ -123,13 +123,14 @@ export async function runSync(): Promise<SyncResult> {
 
       const ft = apiMatch.score.fullTime
 
-      // Always update api_* columns and last_synced_at
+      // Always update api_* columns, scheduled_at, and last_synced_at
       await supabase
         .from('matches')
         .update({
           api_home_score: ft.home,
           api_away_score: ft.away,
           api_status: apiMatch.status,
+          scheduled_at: apiMatch.utcDate,
           last_synced_at: now,
         })
         .eq('id', local.id)
@@ -330,7 +331,7 @@ export async function seedMatchMapping(): Promise<{ mapped: number; unmatched: n
     if (local.fd_match_id !== apiMatch.id) {
       await supabase
         .from('matches')
-        .update({ fd_match_id: apiMatch.id })
+        .update({ fd_match_id: apiMatch.id, scheduled_at: apiMatch.utcDate })
         .eq('id', local.id)
       mapped++
     }
