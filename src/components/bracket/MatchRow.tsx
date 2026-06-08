@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
 import { useT } from '@/lib/i18n/I18nProvider'
+import { formatDateDDMM } from '@/lib/dateUtils'
 import type { MatchWithTeams, Prediction } from '@/types/app'
 
 interface MatchRowProps {
@@ -30,15 +31,8 @@ export function MatchRow({ match, prediction, isEditable, onUpdate, saving, erro
   const hasResult = match.result_confirmed && match.home_score !== null
   const pts = prediction?.points_awarded
 
-  // Format scheduled_at as dd/mm
-  const dateLabel = match.scheduled_at
-    ? (() => {
-        const d = new Date(match.scheduled_at)
-        const dd = String(d.getUTCDate()).padStart(2, '0')
-        const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
-        return `${dd}/${mm}`
-      })()
-    : null
+  // Format scheduled_at as dd/mm in CST
+  const dateLabel = match.scheduled_at ? formatDateDDMM(match.scheduled_at) : null
 
   function handleHomeChange(val: number | null) {
     setLocalHome(val)
