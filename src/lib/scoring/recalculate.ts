@@ -176,7 +176,23 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // Knockout rounds are scored entirely from match predictions, so with none there's
     // nothing to do. Group stage also scores qualification + best-third picks, which are
     // independent of match predictions — so we must NOT early-exit there.
+    // However, if stale entries were zeroed above, we must re-sum before leaving.
     if (predictions.length === 0 && round.name !== 'group_stage') {
+      if (staleEntryIds.length > 0) {
+        const now = new Date().toISOString()
+        for (const entryId of staleEntryIds) {
+          const [{ data: preds }, { data: quals }, { data: thirds }] = await Promise.all([
+            supabase.from('predictions').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('group_qualifications').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('entry_best_third_selections').select('points_awarded').eq('entry_id', entryId),
+          ])
+          const total =
+            (preds ?? []).reduce((s, p) => s + (p.points_awarded ?? 0), 0) +
+            (quals ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0) +
+            (thirds ?? []).reduce((s, t) => s + (t.points_awarded ?? 0), 0)
+          await supabase.from('entries').update({ total_points: total, updated_at: now }).eq('id', entryId)
+        }
+      }
       return { error: 'No predictions found for confirmed matches' }
     }
 
