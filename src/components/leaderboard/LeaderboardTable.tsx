@@ -152,8 +152,8 @@ export function LeaderboardTable({ rows, currentPage, totalPages, currentUserEma
               const isMe = currentUserEmail !== null && currentUserEmail === row.user_email
               const { icon, classes } = rankDisplay(row.rank)
               const correctPct =
-                row.scored_predictions > 0
-                  ? Math.round((row.correct_predictions / row.scored_predictions) * 100)
+                row.max_scored > 0
+                  ? Math.round((row.total_points / row.max_scored) * 100)
                   : null
 
               return (
