@@ -180,7 +180,8 @@ export async function GET() {
   const GROUP_COLS = 12  // number of columns for group stage section
   const KO_COLS = 13
 
-  const usedSheetNames = new Set<string>(['Leaderboard'])
+  // Excel enforces case-insensitive sheet name uniqueness; track lowercase keys.
+  const usedSheetNames = new Set<string>(['leaderboard'])
 
   for (const entry of entries ?? []) {
     // Excel sheet names: max 31 chars, no special chars.
@@ -188,12 +189,12 @@ export async function GET() {
     let baseName = entry.name.replace(/[\\\/\?\*\[\]:]/g, '').substring(0, 31)
     let sheetName = baseName
     let suffix = 2
-    while (usedSheetNames.has(sheetName)) {
+    while (usedSheetNames.has(sheetName.toLowerCase())) {
       const tag = ` (${suffix})`
       sheetName = baseName.substring(0, 31 - tag.length) + tag
       suffix++
     }
-    usedSheetNames.add(sheetName)
+    usedSheetNames.add(sheetName.toLowerCase())
     const ws = wb.addWorksheet(sheetName)
 
     ws.columns = [
