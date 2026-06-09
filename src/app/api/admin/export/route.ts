@@ -7,6 +7,9 @@ import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
 import { formatDateForExport } from '@/lib/dateUtils'
 import type { RoundName } from '@/types/app'
 
+// Allow up to 60s for large exports (many entries × matches)
+export const maxDuration = 60
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function teamName(ref: unknown): string {
@@ -177,9 +180,20 @@ export async function GET() {
   const GROUP_COLS = 12  // number of columns for group stage section
   const KO_COLS = 13
 
+  const usedSheetNames = new Set<string>(['Leaderboard'])
+
   for (const entry of entries ?? []) {
-    // Excel sheet names: max 31 chars, no special chars
-    const sheetName = entry.name.replace(/[\\\/\?\*\[\]:]/g, '').substring(0, 31)
+    // Excel sheet names: max 31 chars, no special chars.
+    // Deduplicate names to prevent ExcelJS from throwing on collisions.
+    let baseName = entry.name.replace(/[\\\/\?\*\[\]:]/g, '').substring(0, 31)
+    let sheetName = baseName
+    let suffix = 2
+    while (usedSheetNames.has(sheetName)) {
+      const tag = ` (${suffix})`
+      sheetName = baseName.substring(0, 31 - tag.length) + tag
+      suffix++
+    }
+    usedSheetNames.add(sheetName)
     const ws = wb.addWorksheet(sheetName)
 
     ws.columns = [

@@ -3,6 +3,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
+import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
 import { revalidatePath } from 'next/cache'
 import type { RoundName, RoundStatus } from '@/types/app'
 
@@ -41,7 +42,7 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
     { data: entries },
     { data: rounds },
     { data: matches },
-    { data: predictions },
+    predictions,
     { data: sessions },
     { data: dbAdmins },
     { data: credentials },
@@ -49,9 +50,10 @@ export async function getAdminUsers(): Promise<{ data?: AdminUserRow[]; error?: 
     supabase.from('entries').select('id, user_email, name, total_points, created_at').order('user_email'),
     supabase.from('rounds').select('id, name, status, sort_order').order('sort_order'),
     supabase.from('matches').select('id, round_id'),
-    supabase
-      .from('predictions')
-      .select('entry_id, match_id, predicted_home, predicted_away'),
+    fetchAllRows<{
+      entry_id: string; match_id: string;
+      predicted_home: number | null; predicted_away: number | null;
+    }>(() => supabase.from('predictions').select('entry_id, match_id, predicted_home, predicted_away').order('entry_id').order('match_id')),
     supabase.from('user_sessions').select('email').order('created_at'),
     supabase.from('admins').select('email'),
     supabase.from('user_credentials').select('email'),
