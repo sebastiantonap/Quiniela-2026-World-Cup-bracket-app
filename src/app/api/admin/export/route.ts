@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth/isAdmin'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
 import { ROUND_LABELS, ROUND_ORDER } from '@/lib/constants/rounds'
+import { formatDateForExport } from '@/lib/dateUtils'
 import type { RoundName } from '@/types/app'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -272,7 +273,7 @@ export async function GET() {
       r.getCell(1).value = ''
       r.getCell(2).value = m.match_number
       r.getCell(2).alignment = { horizontal: 'center' }
-      r.getCell(3).value = m.scheduled_at ? new Date(m.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
+      r.getCell(3).value = m.scheduled_at ? formatDateForExport(m.scheduled_at) : ''
       r.getCell(3).alignment = { horizontal: 'center' }
       r.getCell(4).value = `${homeFlag} ${homeTeam}`.trim()
       r.getCell(5).value = pred?.predicted_home ?? ''
@@ -384,7 +385,7 @@ export async function GET() {
         const r = ws.getRow(row)
         r.getCell(1).value = m.match_number
         r.getCell(1).alignment = { horizontal: 'center' }
-        r.getCell(3).value = m.scheduled_at ? new Date(m.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
+        r.getCell(3).value = m.scheduled_at ? formatDateForExport(m.scheduled_at) : ''
         r.getCell(3).alignment = { horizontal: 'center' }
         r.getCell(4).value = `${homeFlag} ${homeTeam}`.trim()
         r.getCell(5).value = pred?.predicted_home ?? ''
