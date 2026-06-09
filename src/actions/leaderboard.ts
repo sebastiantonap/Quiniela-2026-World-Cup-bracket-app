@@ -2,7 +2,7 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { fetchAllRows } from '@/lib/supabase/fetchAllRows'
-import { ROUND_POINTS, ROUND_ORDER } from '@/lib/constants/rounds'
+import { ROUND_POINTS, QUALIFICATION_POINTS, BEST_THIRD_POINTS, ROUND_ORDER } from '@/lib/constants/rounds'
 import type { EnrichedLeaderboardRow, RoundName } from '@/types/app'
 
 export async function getLeaderboard(
@@ -30,6 +30,7 @@ export async function getLeaderboard(
     uncalcQuals,
     scoredPreds,
     scoredQuals,
+    scoredThirds,
   ] = await Promise.all([
     // Uncalculated match predictions with round name (paginated to avoid 1000-row cap)
     fetchAllRows(() =>
@@ -71,6 +72,16 @@ export async function getLeaderboard(
         .not('calculated_at', 'is', null)
         .order('id')
     ),
+
+    // Scored best-third selections (paginated)
+    fetchAllRows(() =>
+      supabase
+        .from('entry_best_third_selections')
+        .select('entry_id, points_awarded')
+        .in('entry_id', entryIds)
+        .not('calculated_at', 'is', null)
+        .order('id')
+    ),
   ])
 
   // Build max_potential map
@@ -91,6 +102,26 @@ export async function getLeaderboard(
 
   for (const qual of uncalcQuals) {
     potentialMap.set(qual.entry_id, (potentialMap.get(qual.entry_id) ?? 0) + 9)
+  }
+
+  // Build max_scored map — max achievable points from already-calculated items
+  const maxScoredMap = new Map<string, number>()
+  const QUAL_MAX = QUALIFICATION_POINTS.exactFirst + QUALIFICATION_POINTS.exactSecond + QUALIFICATION_POINTS.exactThird
+
+  for (const pred of scoredPreds) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const roundName = (pred as any).matches?.rounds?.name as RoundName | undefined
+    if (!roundName || !ROUND_POINTS[roundName]) continue
+    const { winner, bonus } = ROUND_POINTS[roundName]
+    maxScoredMap.set(pred.entry_id, (maxScoredMap.get(pred.entry_id) ?? 0) + winner + bonus)
+  }
+
+  for (const qual of scoredQuals) {
+    maxScoredMap.set(qual.entry_id, (maxScoredMap.get(qual.entry_id) ?? 0) + QUAL_MAX)
+  }
+
+  for (const sel of scoredThirds) {
+    maxScoredMap.set(sel.entry_id, (maxScoredMap.get(sel.entry_id) ?? 0) + BEST_THIRD_POINTS)
   }
 
   // Build round_breakdown map
@@ -117,6 +148,7 @@ export async function getLeaderboard(
     ...row,
     rank_delta: Number.isFinite(row.rank_delta) ? row.rank_delta : 0,
     max_potential: row.total_points + (potentialMap.get(row.entry_id) ?? 0),
+    max_scored: maxScoredMap.get(row.entry_id) ?? 0,
     round_breakdown: breakdownMap.get(row.entry_id) ?? {},
   }))
 
@@ -143,6 +175,7 @@ export async function getUserLeaderboardRow(
     ...row,
     rank_delta: Number.isFinite(row.rank_delta) ? row.rank_delta : 0,
     max_potential: row.total_points,
+    max_scored: 0,
     round_breakdown: {},
   }
 }

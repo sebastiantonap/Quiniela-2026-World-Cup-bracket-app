@@ -42,6 +42,7 @@ export interface LeaderboardRow {
 
 export interface EnrichedLeaderboardRow extends LeaderboardRow {
   max_potential: number
+  max_scored: number
   round_breakdown: Partial<Record<RoundName, number>>
 }
 
