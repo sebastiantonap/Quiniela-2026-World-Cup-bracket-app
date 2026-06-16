@@ -48,16 +48,20 @@ function str(v: unknown): string | null {
 
 function diffFields(
   local: LocalMatch,
-  apiMatch: FdMatch
+  apiMatch: FdMatch,
+  swapped: boolean
 ): ChangeField[] {
   const changes: ChangeField[] = []
   const ft = apiMatch.score.fullTime
 
-  if (ft.home !== null && ft.home !== local.home_score) {
-    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(ft.home) })
+  const effectiveHome = swapped ? ft.away : ft.home
+  const effectiveAway = swapped ? ft.home : ft.away
+
+  if (effectiveHome !== null && effectiveHome !== local.home_score) {
+    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(effectiveHome) })
   }
-  if (ft.away !== null && ft.away !== local.away_score) {
-    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(ft.away) })
+  if (effectiveAway !== null && effectiveAway !== local.away_score) {
+    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(effectiveAway) })
   }
 
   return changes
@@ -155,7 +159,7 @@ export async function runSync(): Promise<SyncResult> {
       // Only process FINISHED matches for score updates
       if (apiMatch.status !== 'FINISHED') continue
 
-      const changes = diffFields(local, apiMatch)
+      const changes = diffFields(local, apiMatch, swapped)
       if (changes.length === 0 && local.result_confirmed) continue
 
       // Determine winner
