@@ -308,6 +308,7 @@ export const es: Dictionary = {
   'admin.sync.matchesNotMapped': 'Partidos sin mapear',
   'admin.sync.seedTeams': 'Mapear equipos',
   'admin.sync.seedMatches': 'Mapear partidos',
+  'admin.sync.reseedMatches': 'Re-mapear partidos',
   'admin.sync.col.time': 'Hora',
   'admin.sync.col.status': 'Estado',
   'admin.sync.col.seen': 'Vistos',
