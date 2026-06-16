@@ -151,6 +151,39 @@ export async function clearMatchResult(matchId: string): Promise<{ error?: strin
 
   if (error) return { error: error.message }
 
+  // Reset points on predictions that referenced this match so they don't
+  // leave stale awarded values in the leaderboard / bracket views.
+  const { data: affectedPreds } = await admin
+    .from('predictions')
+    .select('entry_id')
+    .eq('match_id', matchId)
+    .not('points_awarded', 'is', null)
+
+  await admin
+    .from('predictions')
+    .update({ points_awarded: null, qualification_gated: false, calculated_at: null })
+    .eq('match_id', matchId)
+
+  // Re-sum total_points for every entry that had points from this match.
+  const affectedEntryIds = Array.from(new Set((affectedPreds ?? []).map((p) => p.entry_id)))
+  for (const entryId of affectedEntryIds) {
+    const [{ data: preds }, { data: quals }, { data: thirds }] = await Promise.all([
+      admin.from('predictions').select('points_awarded').eq('entry_id', entryId),
+      admin.from('group_qualifications').select('points_awarded').eq('entry_id', entryId),
+      admin.from('entry_best_third_selections').select('points_awarded').eq('entry_id', entryId),
+    ])
+
+    const total =
+      (preds ?? []).reduce((s, p) => s + (p.points_awarded ?? 0), 0) +
+      (quals ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0) +
+      (thirds ?? []).reduce((s, t) => s + (t.points_awarded ?? 0), 0)
+
+    await admin
+      .from('entries')
+      .update({ total_points: total, updated_at: new Date().toISOString() })
+      .eq('id', entryId)
+  }
+
   if (match) {
     if (match.home_score !== null) {
       await logChange(admin, matchId, 'home_score', str(match.home_score), null, 'manual', adminEmail)
@@ -164,6 +197,9 @@ export async function clearMatchResult(matchId: string): Promise<{ error?: strin
   }
 
   revalidatePath('/admin')
+  revalidatePath('/leaderboard')
+  revalidatePath('/dashboard')
+  revalidatePath('/entries', 'layout')
   return {}
 }
 

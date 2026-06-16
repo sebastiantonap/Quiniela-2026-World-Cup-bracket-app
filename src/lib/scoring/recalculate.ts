@@ -75,6 +75,11 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
   }
 
   try {
+    // Entries whose predictions were zeroed out because their match result was
+    // cleared. Tracked here so the final re-sum includes them even if they have
+    // no predictions on the remaining confirmed matches.
+    let staleEntryIds: string[] = []
+
     // Snapshot every entry's current rank before points change
     const { data: currentRanks } = await supabase
       .from('leaderboard')
@@ -99,16 +104,59 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     if (!round) return { error: 'Round not found' }
 
     // ---------- Match predictions ----------
-    const { data: matches } = await supabase
+    // Fetch ALL matches in the round so we can zero out stale points on
+    // unconfirmed ones (e.g. a result that was cleared after points were awarded).
+    const { data: allRoundMatches } = await supabase
       .from('matches')
-      .select('id, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id')
+      .select('id, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id, result_confirmed')
       .eq('round_id', roundId)
-      .eq('result_confirmed', true)
 
-    if (!matches || matches.length === 0) {
+    const confirmed = (allRoundMatches ?? []).filter((m) => m.result_confirmed)
+    const unconfirmed = (allRoundMatches ?? []).filter((m) => !m.result_confirmed)
+
+    // Zero out stale points on predictions for matches whose result has been
+    // cleared since the last recalculation.
+    if (unconfirmed.length > 0) {
+      const uncIds = unconfirmed.map((m) => m.id)
+      const { data: stalePreds } = await supabase
+        .from('predictions')
+        .select('entry_id')
+        .in('match_id', uncIds)
+        .not('points_awarded', 'is', null)
+
+      if (stalePreds && stalePreds.length > 0) {
+        await supabase
+          .from('predictions')
+          .update({ points_awarded: null, qualification_gated: false, calculated_at: null })
+          .in('match_id', uncIds)
+
+        // Track these entries so their totals get re-summed later.
+        staleEntryIds = Array.from(new Set(stalePreds.map((p) => p.entry_id)))
+      }
+    }
+
+    // After zeroing stale predictions, if no confirmed results remain we still
+    // need to re-sum the affected entries (whose totals are now wrong).
+    if (confirmed.length === 0) {
+      if (staleEntryIds.length > 0) {
+        const now = new Date().toISOString()
+        for (const entryId of staleEntryIds) {
+          const [{ data: preds }, { data: quals }, { data: thirds }] = await Promise.all([
+            supabase.from('predictions').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('group_qualifications').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('entry_best_third_selections').select('points_awarded').eq('entry_id', entryId),
+          ])
+          const total =
+            (preds ?? []).reduce((s, p) => s + (p.points_awarded ?? 0), 0) +
+            (quals ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0) +
+            (thirds ?? []).reduce((s, t) => s + (t.points_awarded ?? 0), 0)
+          await supabase.from('entries').update({ total_points: total, updated_at: now }).eq('id', entryId)
+        }
+      }
       return { error: 'No confirmed results in this round' }
     }
 
+    const matches = confirmed
     const matchIds = matches.map((m) => m.id)
     const matchMap = new Map(matches.map((m) => [m.id, m]))
 
@@ -128,7 +176,23 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // Knockout rounds are scored entirely from match predictions, so with none there's
     // nothing to do. Group stage also scores qualification + best-third picks, which are
     // independent of match predictions — so we must NOT early-exit there.
+    // However, if stale entries were zeroed above, we must re-sum before leaving.
     if (predictions.length === 0 && round.name !== 'group_stage') {
+      if (staleEntryIds.length > 0) {
+        const now = new Date().toISOString()
+        for (const entryId of staleEntryIds) {
+          const [{ data: preds }, { data: quals }, { data: thirds }] = await Promise.all([
+            supabase.from('predictions').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('group_qualifications').select('points_awarded').eq('entry_id', entryId),
+            supabase.from('entry_best_third_selections').select('points_awarded').eq('entry_id', entryId),
+          ])
+          const total =
+            (preds ?? []).reduce((s, p) => s + (p.points_awarded ?? 0), 0) +
+            (quals ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0) +
+            (thirds ?? []).reduce((s, t) => s + (t.points_awarded ?? 0), 0)
+          await supabase.from('entries').update({ total_points: total, updated_at: now }).eq('id', entryId)
+        }
+      }
       return { error: 'No predictions found for confirmed matches' }
     }
 
@@ -137,7 +201,12 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     // Derive affected entry IDs up-front so the eligibility query can use them.
     // For the group stage, entries that only made qualification / best-third picks (and
     // no match predictions) must still be scored, so union those in below.
-    const affectedEntryIds = new Set(predictions.map((p) => p.entry_id))
+    // Also include entries that had stale points zeroed out above so their totals
+    // are re-summed even if they have no predictions on confirmed matches.
+    const affectedEntryIds = new Set([
+      ...predictions.map((p) => p.entry_id),
+      ...staleEntryIds,
+    ])
 
     if (round.name === 'group_stage') {
       const qualEntryRows = await fetchAllRows<{ entry_id: string }>(() =>
