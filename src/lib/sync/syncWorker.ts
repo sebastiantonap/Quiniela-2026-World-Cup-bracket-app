@@ -167,14 +167,14 @@ export async function runSync(): Promise<SyncResult> {
         } else {
           // Draw or penalties
           const pens = apiMatch.score.penalties
-          if (pens.home !== null && pens.away !== null) {
+          if (pens && pens.home !== null && pens.away !== null) {
             winnerTeamId = pens.home > pens.away ? homeTeamUuid : awayTeamUuid
           }
         }
       }
 
       // Penalty scores — swap to match local home/away order
-      const pens = apiMatch.score.penalties
+      const pens = apiMatch.score.penalties ?? { home: null, away: null }
       const homePens = pens.home !== null ? pens.home : null
       const awayPens = pens.away !== null ? pens.away : null
 
