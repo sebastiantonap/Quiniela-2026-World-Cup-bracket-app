@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { getSessionEmail } from '@/lib/session'
 import { isAdmin } from '@/lib/auth/isAdmin'
 import { runSync } from '@/lib/sync/syncWorker'
@@ -11,6 +12,14 @@ export async function POST() {
   }
 
   const result = await runSync()
+
+  if (result.matchesChanged > 0) {
+    revalidatePath('/admin')
+    revalidatePath('/leaderboard')
+    revalidatePath('/dashboard')
+    revalidatePath('/entries', 'layout')
+  }
+
   return NextResponse.json(result)
 }
 
@@ -24,5 +33,13 @@ export async function GET(req: Request) {
   }
 
   const result = await runSync()
+
+  if (result.matchesChanged > 0) {
+    revalidatePath('/admin')
+    revalidatePath('/leaderboard')
+    revalidatePath('/dashboard')
+    revalidatePath('/entries', 'layout')
+  }
+
   return NextResponse.json(result)
 }

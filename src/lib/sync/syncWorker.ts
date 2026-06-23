@@ -53,15 +53,14 @@ function diffFields(
 ): ChangeField[] {
   const changes: ChangeField[] = []
   const ft = apiMatch.score.fullTime
+  const localHome = swapped ? ft.away : ft.home
+  const localAway = swapped ? ft.home : ft.away
 
-  const effectiveHome = swapped ? ft.away : ft.home
-  const effectiveAway = swapped ? ft.home : ft.away
-
-  if (effectiveHome !== null && effectiveHome !== local.home_score) {
-    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(effectiveHome) })
+  if (localHome !== null && localHome !== local.home_score) {
+    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(localHome) })
   }
-  if (effectiveAway !== null && effectiveAway !== local.away_score) {
-    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(effectiveAway) })
+  if (localAway !== null && localAway !== local.away_score) {
+    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(localAway) })
   }
 
   return changes
@@ -70,9 +69,9 @@ function diffFields(
 function hasDrift(local: LocalMatch, apiMatch: FdMatch, swapped: boolean): boolean {
   const ft = apiMatch.score.fullTime
   if (ft.home === null || ft.away === null) return false
-  const effectiveHome = swapped ? ft.away : ft.home
-  const effectiveAway = swapped ? ft.home : ft.away
-  return effectiveHome !== local.home_score || effectiveAway !== local.away_score
+  const localHome = swapped ? ft.away : ft.home
+  const localAway = swapped ? ft.home : ft.away
+  return localHome !== local.home_score || localAway !== local.away_score
 }
 
 export async function runSync(): Promise<SyncResult> {
@@ -177,14 +176,14 @@ export async function runSync(): Promise<SyncResult> {
         } else {
           // Draw or penalties
           const pens = apiMatch.score.penalties
-          if (pens.home !== null && pens.away !== null) {
+          if (pens && pens.home !== null && pens.away !== null) {
             winnerTeamId = pens.home > pens.away ? homeTeamUuid : awayTeamUuid
           }
         }
       }
 
       // Penalty scores — swap to match local home/away order
-      const pens = apiMatch.score.penalties
+      const pens = apiMatch.score.penalties ?? { home: null, away: null }
       const homePens = pens.home !== null ? pens.home : null
       const awayPens = pens.away !== null ? pens.away : null
 
@@ -232,7 +231,6 @@ export async function runSync(): Promise<SyncResult> {
 
     // Recalculate points for affected rounds
     const benignErrors = new Set([
-      'Recalculation already in progress for this round',
       'No confirmed results in this round',
       'No predictions found for confirmed matches',
     ])
