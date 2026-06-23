@@ -43,8 +43,8 @@ export interface FdMatch {
     duration: string
     fullTime: FdScore
     halfTime: FdScore
-    regularTime: FdScore
-    penalties: FdScore
+    regularTime?: FdScore
+    penalties?: FdScore
   }
   homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string }
   awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string }

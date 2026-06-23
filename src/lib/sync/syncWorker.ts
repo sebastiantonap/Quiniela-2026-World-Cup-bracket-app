@@ -45,25 +45,30 @@ function str(v: unknown): string | null {
 
 function diffFields(
   local: LocalMatch,
-  apiMatch: FdMatch
+  apiMatch: FdMatch,
+  swapped: boolean
 ): ChangeField[] {
   const changes: ChangeField[] = []
   const ft = apiMatch.score.fullTime
+  const localHome = swapped ? ft.away : ft.home
+  const localAway = swapped ? ft.home : ft.away
 
-  if (ft.home !== null && ft.home !== local.home_score) {
-    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(ft.home) })
+  if (localHome !== null && localHome !== local.home_score) {
+    changes.push({ field: 'home_score', oldValue: str(local.home_score), newValue: str(localHome) })
   }
-  if (ft.away !== null && ft.away !== local.away_score) {
-    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(ft.away) })
+  if (localAway !== null && localAway !== local.away_score) {
+    changes.push({ field: 'away_score', oldValue: str(local.away_score), newValue: str(localAway) })
   }
 
   return changes
 }
 
-function hasDrift(local: LocalMatch, apiMatch: FdMatch): boolean {
+function hasDrift(local: LocalMatch, apiMatch: FdMatch, swapped: boolean): boolean {
   const ft = apiMatch.score.fullTime
   if (ft.home === null || ft.away === null) return false
-  return ft.home !== local.home_score || ft.away !== local.away_score
+  const localHome = swapped ? ft.away : ft.home
+  const localAway = swapped ? ft.home : ft.away
+  return localHome !== local.home_score || localAway !== local.away_score
 }
 
 export async function runSync(): Promise<SyncResult> {
@@ -142,7 +147,7 @@ export async function runSync(): Promise<SyncResult> {
 
       if (local.is_manual_override) {
         // Don't overwrite live values; just flag drift
-        if (hasDrift(local, apiMatch)) {
+        if (hasDrift(local, apiMatch, swapped)) {
           result.driftCount++
         }
         continue
@@ -151,7 +156,7 @@ export async function runSync(): Promise<SyncResult> {
       // Only process FINISHED matches for score updates
       if (apiMatch.status !== 'FINISHED') continue
 
-      const changes = diffFields(local, apiMatch)
+      const changes = diffFields(local, apiMatch, swapped)
       if (changes.length === 0 && local.result_confirmed) continue
 
       // Determine winner
@@ -167,14 +172,14 @@ export async function runSync(): Promise<SyncResult> {
         } else {
           // Draw or penalties
           const pens = apiMatch.score.penalties
-          if (pens.home !== null && pens.away !== null) {
+          if (pens && pens.home !== null && pens.away !== null) {
             winnerTeamId = pens.home > pens.away ? homeTeamUuid : awayTeamUuid
           }
         }
       }
 
       // Penalty scores — swap to match local home/away order
-      const pens = apiMatch.score.penalties
+      const pens = apiMatch.score.penalties ?? { home: null, away: null }
       const homePens = pens.home !== null ? pens.home : null
       const awayPens = pens.away !== null ? pens.away : null
 
