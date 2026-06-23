@@ -67,10 +67,12 @@ function diffFields(
   return changes
 }
 
-function hasDrift(local: LocalMatch, apiMatch: FdMatch): boolean {
+function hasDrift(local: LocalMatch, apiMatch: FdMatch, swapped: boolean): boolean {
   const ft = apiMatch.score.fullTime
   if (ft.home === null || ft.away === null) return false
-  return ft.home !== local.home_score || ft.away !== local.away_score
+  const effectiveHome = swapped ? ft.away : ft.home
+  const effectiveAway = swapped ? ft.home : ft.away
+  return effectiveHome !== local.home_score || effectiveAway !== local.away_score
 }
 
 export async function runSync(): Promise<SyncResult> {
@@ -150,7 +152,7 @@ export async function runSync(): Promise<SyncResult> {
 
       if (local.is_manual_override) {
         // Don't overwrite live values; just flag drift
-        if (hasDrift(local, apiMatch)) {
+        if (hasDrift(local, apiMatch, swapped)) {
           result.driftCount++
         }
         continue
@@ -229,10 +231,15 @@ export async function runSync(): Promise<SyncResult> {
     }
 
     // Recalculate points for affected rounds
+    const benignErrors = new Set([
+      'Recalculation already in progress for this round',
+      'No confirmed results in this round',
+      'No predictions found for confirmed matches',
+    ])
     for (const roundId of Array.from(affectedRoundIds)) {
       try {
         const recalcResult = await recalculateRound(roundId)
-        if (recalcResult.error) {
+        if (recalcResult.error && !benignErrors.has(recalcResult.error)) {
           result.errors.push(`Recalculate round ${roundId}: ${recalcResult.error}`)
         } else {
           result.roundsRecalculated++
