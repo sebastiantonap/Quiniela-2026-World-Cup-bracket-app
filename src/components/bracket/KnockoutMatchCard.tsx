@@ -86,9 +86,8 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
     : forcedWinnerTeamId === awayTeam?.id ? `${awayFlag} ${awayName}`.trim()
     : ''
 
-  // Scores and winner selection only ever affect points in the FULL case. In partial
-  // (winner forced, advance points only) and void (no points), lock the inputs out.
-  const selectionLocked = showEligibility && (isPartial || isVoid)
+  // Eligibility is informational only — users can always enter scores to
+  // fill their bracket. Scoring handles partial/void point rules separately.
 
   // A knockout match the user predicts as a regulation tie goes to penalties.
   const isTie = localHome !== null && localAway !== null && localHome === localAway
@@ -137,16 +136,6 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   const awayIsWinner = computedWinner != null && computedWinner === awayTeam?.id
 
   function renderTrailing(teamId: string | undefined, localScore: number | null, onScoreChange: (v: number | null) => void, predicted: number | null | undefined) {
-    if (selectionLocked) {
-      if (isPartial && teamId && teamId === forcedWinnerTeamId) {
-        return (
-          <span className="rounded bg-emerald-900/30 px-2 py-1 text-[11px] font-semibold text-emerald-400">
-            {t('knockout.advances')}
-          </span>
-        )
-      }
-      return <span className="w-12 text-center text-sm text-slate-600">—</span>
-    }
     if (effectiveEditable) {
       return <ScoreInput value={localScore} onChange={onScoreChange} />
     }
@@ -162,7 +151,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   return (
     <div
       className={`rounded-xl border bg-slate-800 ${compact ? 'p-2.5' : 'p-4'} ${
-        slotsUnfilled || isVoid ? 'opacity-60' : ''
+        slotsUnfilled ? 'opacity-60' : ''
       } ${borderClass}`}
     >
       <div className={`${compact ? 'mb-1.5' : 'mb-3'} flex items-center justify-between`}>
@@ -227,7 +216,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       </div>
 
       {/* Penalty shootout — only when the user predicts a regulation tie. */}
-      {effectiveEditable && !selectionLocked && isTie && (
+      {effectiveEditable && isTie && (
         <div className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-amber-700/40 bg-amber-900/10 px-2 py-1.5">
           <span className="text-[10px] font-semibold uppercase text-amber-400">{t('knockout.pensLabel')}</span>
           <ScoreInput value={localHomePen} onChange={handleHomePenChange} />
@@ -241,16 +230,12 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         </p>
       )}
 
-      {!compact && effectiveEditable && !selectionLocked && isTie && (
+      {!compact && effectiveEditable && isTie && (
         <p className="mt-2 text-center text-xs text-slate-500">
           {t('knockout.penaltiesHint')}
         </p>
       )}
-      {!compact && effectiveEditable && isPartial && (
-        <p className="mt-2 text-center text-xs text-slate-500">
-          {t('knockout.winnerForced', { name: forcedName })}
-        </p>
-      )}
+
       {slotsUnfilled && (
         <p className="mt-2 text-center text-xs text-slate-500">{t('knockout.teamsTbd')}</p>
       )}

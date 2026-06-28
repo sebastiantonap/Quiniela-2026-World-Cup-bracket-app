@@ -45,14 +45,15 @@ interface BracketNode {
 }
 
 /**
- * Build the ordered list of matches per bracket column by following the
- * placeholder references to pair feeder matches.
+ * Build the ordered list of matches per bracket column by working BACKWARDS
+ * from the Final through each round, recursively collecting feeder matches.
+ * This ensures every pair of feeder matches is adjacent and lines up with
+ * its downstream match.
  */
 function buildBracketOrder(
   matchesByRound: Record<RoundName, MatchWithTeams[]>,
 ): Map<RoundName, BracketNode[]> {
-  const result = new Map<RoundName, BracketNode[]>()
-
+  // match_number → match for resolving placeholders
   const byNumber = new Map<number, MatchWithTeams>()
   for (const matches of Object.values(matchesByRound)) {
     for (const m of matches) byNumber.set(m.match_number, m)
@@ -60,42 +61,74 @@ function buildBracketOrder(
   const qfMatches = (matchesByRound['quarterfinals'] ?? []).slice().sort((a, b) => a.match_number - b.match_number)
   const sfMatches = (matchesByRound['semifinals'] ?? []).slice().sort((a, b) => a.match_number - b.match_number)
 
-  function feederMatchId(placeholder: string | null): string | null {
+  /** Resolve a placeholder to its feeder match. */
+  function feederMatch(placeholder: string | null): MatchWithTeams | null {
     const src = parseSlotPlaceholder(placeholder)
-    if (src.type === 'match_winner') return byNumber.get(src.matchNumber)?.id ?? null
+    if (src.type === 'match_winner') return byNumber.get(src.matchNumber) ?? null
     if (src.type === 'round_rel') {
       const list = src.round === 'QF' ? qfMatches : sfMatches
-      return list[src.index - 1]?.id ?? null
+      return list[src.index - 1] ?? null
     }
     return null
   }
 
-  const firstRound = BRACKET_ROUNDS[0]
-  const firstMatches = (matchesByRound[firstRound] ?? []).slice().sort((a, b) => a.match_number - b.match_number)
-  result.set(firstRound, firstMatches.map((m, i) => ({ match: m, roundName: firstRound, slotIndex: i })))
+  // For each match, find its two feeder matches (home placeholder, away placeholder).
+  // Returns [homeFeeder, awayFeeder] — either may be null if not a knockout reference.
+  function getFeeders(match: MatchWithTeams): [MatchWithTeams | null, MatchWithTeams | null] {
+    return [feederMatch(match.placeholder_home), feederMatch(match.placeholder_away)]
+  }
 
-  for (let ri = 1; ri < BRACKET_ROUNDS.length; ri++) {
+  // Recursively collect matches in bracket order starting from a given match.
+  // For the given match, first recurse into its home feeder's subtree, then
+  // its away feeder's subtree. This produces a depth-first pre-order that
+  // ensures feeder pairs are always adjacent at every level.
+  const collected = new Map<RoundName, MatchWithTeams[]>()
+  const visited = new Set<string>()
+
+  function collectSubtree(match: MatchWithTeams) {
+    if (visited.has(match.id)) return
+    visited.add(match.id)
+    const [homeFeeder, awayFeeder] = getFeeders(match)
+    if (homeFeeder) collectSubtree(homeFeeder)
+    if (awayFeeder) collectSubtree(awayFeeder)
+
+    // Determine which round this match belongs to
+    const roundName = BRACKET_ROUNDS.find((r) =>
+      (matchesByRound[r] ?? []).some((m) => m.id === match.id)
+    )
+    if (roundName) {
+      const list = collected.get(roundName) ?? []
+      list.push(match)
+      collected.set(roundName, list)
+    }
+  }
+
+  // Find the last round that has matches and use it as the root.
+  // For a complete bracket this is the Final (1 match).
+  for (let ri = BRACKET_ROUNDS.length - 1; ri >= 0; ri--) {
     const roundName = BRACKET_ROUNDS[ri]
-    const matches = (matchesByRound[roundName] ?? []).slice()
-    if (matches.length === 0) { result.set(roundName, []); continue }
+    const matches = (matchesByRound[roundName] ?? []).slice().sort((a, b) => a.match_number - b.match_number)
+    for (const m of matches) {
+      collectSubtree(m)
+    }
+  }
 
-    const prevNodes = result.get(BRACKET_ROUNDS[ri - 1]) ?? []
-    const prevIdToIndex = new Map<string, number>()
-    for (const node of prevNodes) prevIdToIndex.set(node.match.id, node.slotIndex)
+  // Any matches not reached by the tree traversal (disconnected from placeholders)
+  // get appended at the end of their round, sorted by match_number.
+  for (const roundName of BRACKET_ROUNDS) {
+    const all = (matchesByRound[roundName] ?? []).slice().sort((a, b) => a.match_number - b.match_number)
+    const list = collected.get(roundName) ?? []
+    for (const m of all) {
+      if (!visited.has(m.id)) list.push(m)
+    }
+    collected.set(roundName, list)
+  }
 
-    const withFeederIndex = matches.map((m) => {
-      const homeFeeder = feederMatchId(m.placeholder_home)
-      const awayFeeder = feederMatchId(m.placeholder_away)
-      const homeIdx = homeFeeder ? prevIdToIndex.get(homeFeeder) : undefined
-      const awayIdx = awayFeeder ? prevIdToIndex.get(awayFeeder) : undefined
-      const minIdx = Math.min(homeIdx ?? Infinity, awayIdx ?? Infinity)
-      return { match: m, sortKey: minIdx === Infinity ? m.match_number : minIdx }
-    })
-    withFeederIndex.sort((a, b) => a.sortKey - b.sortKey)
-
-    result.set(roundName, withFeederIndex.map((item, i) => ({
-      match: item.match, roundName, slotIndex: i,
-    })))
+  // Convert to BracketNode map
+  const result = new Map<RoundName, BracketNode[]>()
+  for (const roundName of BRACKET_ROUNDS) {
+    const list = collected.get(roundName) ?? []
+    result.set(roundName, list.map((m, i) => ({ match: m, roundName, slotIndex: i })))
   }
 
   return result
@@ -197,18 +230,23 @@ export function KnockoutBracketView({
               const matchSpacing = slotsPerMatch * (CARD_H + BASE_GAP) - BASE_GAP
               const topOffset = (matchSpacing - CARD_H) / 2
 
+              const isFinalCol = roundName === 'final'
+
               return (
                 <div
                   key={roundName}
                   className="relative flex-shrink-0"
-                  style={{ width: COL_WIDTH, marginRight: 48 }}
+                  style={{ width: COL_WIDTH, marginRight: isFinalCol ? 0 : 48 }}
                 >
-                  <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {roundLabel(t, roundName)}
-                    </h3>
-                    {roundData && <RoundStatusBadge status={roundData.status} />}
-                  </div>
+                  {!isFinalCol && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        {roundLabel(t, roundName)}
+                      </h3>
+                      {roundData && <RoundStatusBadge status={roundData.status} />}
+                    </div>
+                  )}
+                  {isFinalCol && <div className="mb-3 h-4" />}
 
                   <div className="relative" style={{ height: totalHeight }}>
                     {isHidden ? (
@@ -225,18 +263,58 @@ export function KnockoutBracketView({
                           <div
                             key={node.match.id}
                             className="absolute left-0 right-0"
-                            style={{ top: yPos, height: CARD_H }}
+                            style={{ top: yPos }}
                           >
-                            <MatchCardWrapper
-                              match={node.match}
-                              predictions={predictions}
-                              isEditable={editable}
-                              onUpdate={onUpdate}
-                              saving={saving}
-                              eligibility={eligibility}
-                              predictedSlots={predictedSlots}
-                              compact
-                            />
+                            {isFinalCol && (
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                  {roundLabel(t, 'final')}
+                                </span>
+                                {roundData && <RoundStatusBadge status={roundData.status} />}
+                              </div>
+                            )}
+                            <div style={{ height: CARD_H }}>
+                              <MatchCardWrapper
+                                match={node.match}
+                                predictions={predictions}
+                                isEditable={editable}
+                                onUpdate={onUpdate}
+                                saving={saving}
+                                eligibility={eligibility}
+                                predictedSlots={predictedSlots}
+                                compact
+                              />
+                            </div>
+                            {/* 3rd place directly under the Final card */}
+                            {isFinalCol && thirdPlaceMatches.length > 0 && (
+                              <div className="mt-6">
+                                <div className="mb-1 flex items-center gap-2">
+                                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                    {roundLabel(t, 'third_place')}
+                                  </span>
+                                  {thirdPlaceRound && <RoundStatusBadge status={thirdPlaceRound.status} />}
+                                </div>
+                                {thirdPlaceHidden ? (
+                                  <div className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-4 text-center text-xs text-slate-400">
+                                    {t('bracket.hiddenUntilLocked')}
+                                  </div>
+                                ) : (
+                                  thirdPlaceMatches.map((tpMatch) => (
+                                    <MatchCardWrapper
+                                      key={tpMatch.id}
+                                      match={tpMatch}
+                                      predictions={predictions}
+                                      isEditable={thirdPlaceEditable}
+                                      onUpdate={onUpdate}
+                                      saving={saving}
+                                      eligibility={eligibility}
+                                      predictedSlots={predictedSlots}
+                                      compact
+                                    />
+                                  ))
+                                )}
+                              </div>
+                            )}
                           </div>
                         )
                       })
@@ -274,38 +352,6 @@ export function KnockoutBracketView({
             })}
           </div>
         </div>
-
-        {/* Third place — desktop */}
-        {thirdPlaceMatches.length > 0 && (
-          <div className="border-t border-slate-700 pt-6">
-            <div className="mb-3 flex items-center gap-2">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                {roundLabel(t, 'third_place')}
-              </h3>
-              {thirdPlaceRound && <RoundStatusBadge status={thirdPlaceRound.status} />}
-            </div>
-            {thirdPlaceHidden ? (
-              <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-6 text-center text-sm text-slate-400">
-                {t('bracket.hiddenUntilLocked')}
-              </div>
-            ) : (
-              <div className="max-w-xs">
-                {thirdPlaceMatches.map((match) => (
-                  <MatchCardWrapper
-                    key={match.id}
-                    match={match}
-                    predictions={predictions}
-                    isEditable={thirdPlaceEditable}
-                    onUpdate={onUpdate}
-                    saving={saving}
-                    eligibility={eligibility}
-                    predictedSlots={predictedSlots}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ==================== MOBILE: stacked rounds ==================== */}
