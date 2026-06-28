@@ -174,13 +174,26 @@ export function BracketShell({
   // "one team filled, other TBD" case: classifyKnockoutMatch returns
   // partial when one team is eligible and the other slot is null, so
   // the auto-advance chains through the entire bracket.
+  // Skip on read-only views and locked/completed rounds to avoid
+  // an infinite optimistic-rollback loop from failing server calls.
+  const matchRoundName = useMemo(() => {
+    const map: Record<string, RoundName> = {}
+    for (const [rn, matches] of Object.entries(matchesByRound)) {
+      for (const m of matches) map[m.id] = rn as RoundName
+    }
+    return map
+  }, [matchesByRound])
+
   useEffect(() => {
+    if (readOnly) return
     for (const [matchId, elig] of Object.entries(knockoutEligibility)) {
       if (
         elig.status === 'partial' &&
         elig.forcedWinnerTeamId &&
         predictions[matchId]?.predicted_winner_team_id !== elig.forcedWinnerTeamId
       ) {
+        const rn = matchRoundName[matchId]
+        if (!rn || roundMap[rn]?.status !== 'accepting_predictions') continue
         updatePrediction(matchId, {
           predictedHome: predictions[matchId]?.predicted_home ?? null,
           predictedAway: predictions[matchId]?.predicted_away ?? null,
