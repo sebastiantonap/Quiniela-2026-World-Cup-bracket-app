@@ -108,9 +108,9 @@ export function SyncPanel({ syncRuns, hasTeamMapping, hasMatchMapping, driftCoun
             <span className="text-sm text-slate-300">
               {hasMatchMapping ? t('admin.sync.matchesMapped') : t('admin.sync.matchesNotMapped')}
             </span>
-            {!hasMatchMapping && hasTeamMapping && (
+            {hasTeamMapping && (
               <Button size="sm" loading={seedingMatches} onClick={handleSeedMatches}>
-                {t('admin.sync.seedMatches')}
+                {hasMatchMapping ? t('admin.sync.reseedMatches') : t('admin.sync.seedMatches')}
               </Button>
             )}
           </div>

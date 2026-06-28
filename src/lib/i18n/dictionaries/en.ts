@@ -312,6 +312,7 @@ export const en = {
   'admin.sync.matchesNotMapped': 'Matches not mapped',
   'admin.sync.seedTeams': 'Seed Teams',
   'admin.sync.seedMatches': 'Seed Matches',
+  'admin.sync.reseedMatches': 'Re-seed Matches',
   'admin.sync.col.time': 'Time',
   'admin.sync.col.status': 'Status',
   'admin.sync.col.seen': 'Seen',

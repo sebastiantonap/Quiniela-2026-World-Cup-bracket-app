@@ -7,6 +7,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { fetchWCMatches, fetchWCTeams } from './footballData'
 import type { FdMatch } from './footballData'
+import type { RoundName } from '@/types/database'
 
 export interface SyncResult {
   matchesSeen: number
@@ -261,6 +262,19 @@ const TLA_ALIASES: Record<string, string> = {
   URY: 'URU', // football-data.org uses URY, local uses URU for Uruguay
 }
 
+/**
+ * Maps football-data.org stage values to local round names.
+ * Used to match knockout API matches with local matches by (stage, team pair).
+ */
+const FD_STAGE_TO_ROUND: Record<string, RoundName> = {
+  LAST_32: 'round_of_32',
+  LAST_16: 'round_of_16',
+  QUARTER_FINALS: 'quarterfinals',
+  SEMI_FINALS: 'semifinals',
+  THIRD_PLACE: 'third_place',
+  FINAL: 'final',
+}
+
 export async function seedTeamMapping(): Promise<{ mapped: number; unmatched: string[] }> {
   const supabase = getSupabaseAdminClient()
   const apiTeams = await fetchWCTeams()
@@ -311,14 +325,23 @@ export async function seedMatchMapping(): Promise<{ mapped: number; unmatched: n
     if (t.fd_team_id !== null) uuidByFdTeamId.set(t.fd_team_id, t.id)
   }
 
-  // Load local matches
+  // Load local matches with round info for knockout stage matching
   const { data: localMatches } = await supabase
     .from('matches')
-    .select('id, match_number, home_team_id, away_team_id, fd_match_id')
+    .select('id, match_number, home_team_id, away_team_id, fd_match_id, round_id')
 
   if (!localMatches) return { mapped: 0, unmatched: 0 }
 
-  // Build lookup: (homeTeamUuid, awayTeamUuid) → local match for group stage
+  // Load rounds for round_id → round name mapping
+  const { data: rounds } = await supabase
+    .from('rounds')
+    .select('id, name')
+  const roundNameById = new Map<string, RoundName>()
+  for (const r of rounds ?? []) {
+    roundNameById.set(r.id, r.name)
+  }
+
+  // Build lookup: (homeTeamUuid, awayTeamUuid) → local match
   const byTeamPair = new Map<string, typeof localMatches[number]>()
   for (const m of localMatches) {
     if (m.home_team_id && m.away_team_id) {
@@ -326,33 +349,66 @@ export async function seedMatchMapping(): Promise<{ mapped: number; unmatched: n
     }
   }
 
+  // Build lookup: (roundName, homeTeamUuid, awayTeamUuid) → local match
+  // Used as fallback for knockout matching by (stage, team pair)
+  const byRoundAndTeamPair = new Map<string, typeof localMatches[number]>()
+  for (const m of localMatches) {
+    if (m.home_team_id && m.away_team_id) {
+      const roundName = roundNameById.get(m.round_id)
+      if (roundName && roundName !== 'group_stage') {
+        byRoundAndTeamPair.set(`${roundName}|${m.home_team_id}|${m.away_team_id}`, m)
+      }
+    }
+  }
+
+  // Track which local matches get mapped (by id) so we don't double-map
+  const mappedLocalIds = new Set<string>()
+  for (const m of localMatches) {
+    if (m.fd_match_id !== null) mappedLocalIds.add(m.id)
+  }
+
   let mapped = 0
   let unmatched = 0
 
   for (const apiMatch of apiMatches) {
-    const homeUuid = uuidByFdTeamId.get(apiMatch.homeTeam.id)
-    const awayUuid = uuidByFdTeamId.get(apiMatch.awayTeam.id)
+    const homeUuid = apiMatch.homeTeam.id ? uuidByFdTeamId.get(apiMatch.homeTeam.id) : undefined
+    const awayUuid = apiMatch.awayTeam.id ? uuidByFdTeamId.get(apiMatch.awayTeam.id) : undefined
 
     if (!homeUuid || !awayUuid) {
+      // Knockout matches where the API hasn't yet populated teams will land here.
+      // Re-run seed after knockout teams are assigned in both the local DB and the API.
       unmatched++
       continue
     }
 
-    // Try both orderings — API may have home/away swapped vs local DB
-    const local = byTeamPair.get(`${homeUuid}|${awayUuid}`)
+    // Try direct team-pair match (works for group stage and any knockout match)
+    let local = byTeamPair.get(`${homeUuid}|${awayUuid}`)
       ?? byTeamPair.get(`${awayUuid}|${homeUuid}`)
+
+    // Fallback: match by (stage, team pair) for knockout reliability
+    if (!local) {
+      const roundName = FD_STAGE_TO_ROUND[apiMatch.stage]
+      if (roundName) {
+        local = byRoundAndTeamPair.get(`${roundName}|${homeUuid}|${awayUuid}`)
+          ?? byRoundAndTeamPair.get(`${roundName}|${awayUuid}|${homeUuid}`)
+      }
+    }
+
     if (!local) {
       unmatched++
       continue
     }
 
-    if (local.fd_match_id !== apiMatch.id) {
-      await supabase
-        .from('matches')
-        .update({ fd_match_id: apiMatch.id, scheduled_at: apiMatch.utcDate })
-        .eq('id', local.id)
-      mapped++
+    if (mappedLocalIds.has(local.id) && local.fd_match_id === apiMatch.id) {
+      continue // already correctly mapped
     }
+
+    await supabase
+      .from('matches')
+      .update({ fd_match_id: apiMatch.id, scheduled_at: apiMatch.utcDate })
+      .eq('id', local.id)
+    mappedLocalIds.add(local.id)
+    mapped++
   }
 
   return { mapped, unmatched }
