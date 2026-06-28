@@ -263,7 +263,7 @@ export function KnockoutBracketView({
                           <div
                             key={node.match.id}
                             className="absolute left-0 right-0"
-                            style={{ top: yPos }}
+                            style={{ top: yPos, zIndex: nodes.length - node.slotIndex }}
                           >
                             {isFinalCol && (
                               <div className="mb-1 flex items-center gap-2">
@@ -273,7 +273,7 @@ export function KnockoutBracketView({
                                 {roundData && <RoundStatusBadge status={roundData.status} />}
                               </div>
                             )}
-                            <div style={{ height: CARD_H }}>
+                            <div style={{ minHeight: CARD_H }}>
                               <MatchCardWrapper
                                 match={node.match}
                                 predictions={predictions}
