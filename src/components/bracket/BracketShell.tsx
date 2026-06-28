@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { GroupStageTab } from './GroupStageTab'
-import { KnockoutTab } from './KnockoutTab'
+import { KnockoutBracketView } from './KnockoutBracketView'
 import { ResultsTab } from './ResultsTab'
 import { RoundStatusBadge } from '@/components/ui/Badge'
 import { usePredictions } from '@/hooks/usePredictions'
@@ -10,6 +10,7 @@ import { useQualifications } from '@/hooks/useQualifications'
 import { computePredictedStandings } from '@/lib/standings/predictedStandings'
 import { classifyKnockoutMatch, PREV_ELIGIBILITY_ROUND, type KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import { ROUND_ORDER } from '@/lib/constants/rounds'
+import { resolveUserBracket, findStaleDownstream } from '@/lib/bracket/resolveUserBracket'
 import { useT } from '@/lib/i18n/I18nProvider'
 import { roundLabel } from '@/lib/i18n/translator'
 import type { MatchWithTeams, Prediction, Round, RoundName, Team, Group, QualState } from '@/types/app'
@@ -50,9 +51,14 @@ export function BracketShell({
   const defaultTab = readOnly
     ? [...ROUND_ORDER].reverse().find((r) => roundMap[r] && revealedSet.has(r)) ?? 'group_stage'
     : ROUND_ORDER.find((r) => roundMap[r]?.status === 'accepting_predictions') ?? 'group_stage'
-  const [activeRound, setActiveRound] = useState<RoundName | 'results'>(defaultTab as RoundName)
+  const hasKnockoutRounds = ROUND_ORDER.some((r) => r !== 'group_stage' && roundMap[r])
+  // If the default tab would be a knockout round, redirect to the bracket view
+  const effectiveDefault = defaultTab !== 'group_stage' && hasKnockoutRounds
+    ? 'knockout_bracket'
+    : defaultTab
+  const [activeRound, setActiveRound] = useState<RoundName | 'results' | 'knockout_bracket'>(effectiveDefault as RoundName)
 
-  const { predictions, updatePrediction, saving, errors } = usePredictions(entryId, initialPredictions)
+  const { predictions, updatePrediction, clearPrediction, saving, errors } = usePredictions(entryId, initialPredictions)
   const { quals, updateQualification, saving: qualSaving } = useQualifications(entryId, initialQuals)
 
   // Check if there are any confirmed results to show the Results tab
@@ -91,45 +97,92 @@ export function BracketShell({
     return set
   }, [quals, initialThirdPlaceSelections])
 
+  // Build team lookup for resolving predicted bracket slots
+  const teamById = useMemo(() => {
+    const map = new Map<string, Team>()
+    for (const group of groups) {
+      for (const team of group.teams) {
+        map.set(team.id, team)
+      }
+    }
+    // Also collect teams from match data (covers teams without group)
+    for (const roundMatches of Object.values(matchesByRound)) {
+      for (const m of roundMatches) {
+        if (m.home_team) map.set(m.home_team.id, m.home_team)
+        if (m.away_team) map.set(m.away_team.id, m.away_team)
+      }
+    }
+    return map
+  }, [groups, matchesByRound])
+
+  // Resolve predicted teams for all knockout match slots
+  const predictedSlots = useMemo(
+    () => resolveUserBracket(matchesByRound, predictions, teamById),
+    [matchesByRound, predictions, teamById],
+  )
+
   const activeRoundData = roundMap[activeRound]
   const isEditable = !readOnly && activeRoundData?.status === 'accepting_predictions'
-  const activeMatches = activeRound === 'results' ? [] : matchesByRound[activeRound] ?? []
+  const activeMatches = activeRound === 'results' || activeRound === 'knockout_bracket'
+    ? []
+    : matchesByRound[activeRound] ?? []
+
+  const isEditableRound = useCallback(
+    (roundName: RoundName) => !readOnly && roundMap[roundName]?.status === 'accepting_predictions',
+    [readOnly, roundMap],
+  )
 
   // For a competitor's bracket, rounds that haven't locked yet stay hidden.
   const activeRoundHidden =
-    readOnly && activeRound !== 'results' && !revealedSet.has(activeRound as RoundName)
+    readOnly && activeRound !== 'results' && activeRound !== 'knockout_bracket' && !revealedSet.has(activeRound as RoundName)
 
-  // Per-match knockout eligibility for the active round. A team is "yours" if you correctly
-  // had it advancing into this round: group picks feed Round of 32, then each round keys off
-  // who you picked to win in the previous round. Mirrors the scoring engine.
+  // Per-match knockout eligibility for ALL knockout rounds. Uses predicted teams
+  // (from user's bracket picks) when DB teams aren't assigned yet.
   const knockoutEligibility = useMemo(() => {
     const result: Record<string, KnockoutEligibility> = {}
-    if (activeRound === 'group_stage' || activeRound === 'results') return result
+    const knockoutRounds: RoundName[] = ROUND_ORDER.filter((r) => r !== 'group_stage')
 
-    let isEligible: (teamId: string) => boolean
-    if (activeRound === 'round_of_32') {
-      isEligible = (teamId) => eligibilitySet.has(teamId)
-    } else {
-      const prevRound = PREV_ELIGIBILITY_ROUND[activeRound as RoundName]
-      const prevWinners = new Set<string>()
-      for (const m of (prevRound && matchesByRound[prevRound]) ?? []) {
-        const w = predictions[m.id]?.predicted_winner_team_id
-        if (w) prevWinners.add(w)
+    for (const roundName of knockoutRounds) {
+      const matches = matchesByRound[roundName] ?? []
+      if (matches.length === 0) continue
+
+      let isEligible: (teamId: string) => boolean
+      if (roundName === 'round_of_32') {
+        isEligible = (teamId) => eligibilitySet.has(teamId)
+      } else {
+        const prevRound = PREV_ELIGIBILITY_ROUND[roundName]
+        const prevWinners = new Set<string>()
+        for (const m of (prevRound && matchesByRound[prevRound]) ?? []) {
+          const w = predictions[m.id]?.predicted_winner_team_id
+          if (w) prevWinners.add(w)
+        }
+        isEligible = (teamId) => prevWinners.has(teamId)
       }
-      isEligible = (teamId) => prevWinners.has(teamId)
-    }
 
-    for (const m of activeMatches) {
-      result[m.id] = classifyKnockoutMatch(m.home_team_id, m.away_team_id, isEligible)
+      for (const m of matches) {
+        // Use predicted team IDs when DB team IDs are null
+        const homeId = m.home_team_id ?? predictedSlots[m.id]?.home.team?.id ?? null
+        const awayId = m.away_team_id ?? predictedSlots[m.id]?.away.team?.id ?? null
+        result[m.id] = classifyKnockoutMatch(homeId, awayId, isEligible)
+      }
     }
     return result
-  }, [activeRound, activeMatches, matchesByRound, predictions, eligibilitySet])
+  }, [matchesByRound, predictions, eligibilitySet, predictedSlots])
 
   function handleGroupUpdate(matchId: string, home: number | null, away: number | null) {
     updatePrediction(matchId, { predictedHome: home, predictedAway: away, predictedWinnerTeamId: null })
   }
 
   function handleKnockoutUpdate(matchId: string, home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) {
+    // Find and clear downstream predictions whose teams changed
+    const prevWinner = predictions[matchId]?.predicted_winner_team_id ?? null
+    if (prevWinner !== winnerId) {
+      const stale = findStaleDownstream(matchId, matchesByRound, predictions)
+      stale.forEach((staleId) => {
+        clearPrediction(staleId)
+      })
+    }
+
     updatePrediction(matchId, {
       predictedHome: home,
       predictedAway: away,
@@ -144,30 +197,40 @@ export function BracketShell({
       {/* Round tabs */}
       <div className="mb-6 overflow-x-auto">
         <div className="flex gap-1 rounded-xl bg-slate-800 p-1 min-w-max">
-          {ROUND_ORDER.map((roundName) => {
-            const round = roundMap[roundName]
-            if (!round) return null
-            const isActive = activeRound === roundName
-            return (
-              <button
-                key={roundName}
-                onClick={() => setActiveRound(roundName)}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
-                  isActive
-                    ? 'bg-slate-700 text-slate-100 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {roundLabel(t, roundName)}
-                <RoundStatusBadge status={round.status} />
-                {roundName !== 'group_stage' && unresolvedGroupCount > 0 && (
-                  <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
-                    {t(unresolvedGroupCount === 1 ? 'bracket.tieOne' : 'bracket.tieOther', { count: unresolvedGroupCount })}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+          {/* Group Stage tab */}
+          {roundMap['group_stage'] && (
+            <button
+              key="group_stage"
+              onClick={() => setActiveRound('group_stage')}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
+                activeRound === 'group_stage'
+                  ? 'bg-slate-700 text-slate-100 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {roundLabel(t, 'group_stage')}
+              <RoundStatusBadge status={roundMap['group_stage'].status} />
+            </button>
+          )}
+          {/* Combined Knockout Bracket tab */}
+          {hasKnockoutRounds && (
+            <button
+              key="knockout"
+              onClick={() => setActiveRound('knockout_bracket')}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
+                activeRound === 'knockout_bracket'
+                  ? 'bg-slate-700 text-slate-100 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t('bracket.knockoutBracket')}
+              {unresolvedGroupCount > 0 && (
+                <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                  {t(unresolvedGroupCount === 1 ? 'bracket.tieOne' : 'bracket.tieOther', { count: unresolvedGroupCount })}
+                </span>
+              )}
+            </button>
+          )}
           {hasConfirmedResults && (
             <button
               key="results"
@@ -184,18 +247,18 @@ export function BracketShell({
         </div>
       </div>
 
-      {/* Status banners */}
-      {!isEditable && !activeRoundHidden && activeRoundData?.status === 'pending' && (
+      {/* Status banners — only for group stage (knockout shows per-round status inline) */}
+      {activeRound === 'group_stage' && !isEditable && !activeRoundHidden && activeRoundData?.status === 'pending' && (
         <div className="mb-4 rounded-xl bg-slate-800 px-4 py-3 text-sm text-slate-400 border border-slate-700">
           {t('bracket.roundNotOpen')}
         </div>
       )}
-      {!isEditable && activeRoundData?.status === 'locked' && (
+      {activeRound === 'group_stage' && !isEditable && activeRoundData?.status === 'locked' && (
         <div className="mb-4 rounded-xl bg-amber-900/20 border border-amber-800/40 px-4 py-3 text-sm text-amber-400">
           {t('bracket.roundLocked')}
         </div>
       )}
-      {!isEditable && activeRoundData?.status === 'completed' && (
+      {activeRound === 'group_stage' && !isEditable && activeRoundData?.status === 'completed' && (
         <div className="mb-4 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-sm text-slate-400">
           {t('bracket.roundCompleted')}
         </div>
@@ -228,16 +291,17 @@ export function BracketShell({
           unresolvedCount={unresolvedGroupCount}
           initialThirdPlaceSelections={initialThirdPlaceSelections}
         />
-      ) : (
-        <KnockoutTab
-          matches={activeMatches}
+      ) : activeRound === 'knockout_bracket' ? (
+        <KnockoutBracketView
+          matchesByRound={matchesByRound}
           predictions={predictions}
-          isEditable={isEditable}
+          predictedSlots={predictedSlots}
+          isEditableRound={isEditableRound}
           onUpdate={handleKnockoutUpdate}
           saving={saving}
           eligibility={knockoutEligibility}
         />
-      )}
+      ) : null}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { PointsBadge } from '@/components/ui/Badge'
 import { useT } from '@/lib/i18n/I18nProvider'
 import type { KnockoutEligibility } from '@/lib/scoring/knockoutEligibility'
 import type { MatchWithTeams, Prediction } from '@/types/app'
+import type { PredictedMatch } from '@/lib/bracket/resolveUserBracket'
 
 interface KnockoutMatchCardProps {
   match: MatchWithTeams
@@ -14,9 +15,11 @@ interface KnockoutMatchCardProps {
   onUpdate: (home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) => void
   saving?: boolean
   eligibility: KnockoutEligibility | undefined
+  /** Teams resolved from user predictions when the DB hasn't assigned teams yet. */
+  predictedSlot?: PredictedMatch
 }
 
-export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility }: KnockoutMatchCardProps) {
+export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility, predictedSlot }: KnockoutMatchCardProps) {
   const t = useT()
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
@@ -26,8 +29,11 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   const [localHomePen, setLocalHomePen] = useState<number | null>(prediction?.predicted_home_penalties ?? null)
   const [localAwayPen, setLocalAwayPen] = useState<number | null>(prediction?.predicted_away_penalties ?? null)
 
-  const homeTeam = match.home_team
-  const awayTeam = match.away_team
+  // Use DB teams first, fall back to user-predicted teams
+  const homeTeam = match.home_team ?? predictedSlot?.home.team ?? null
+  const awayTeam = match.away_team ?? predictedSlot?.away.team ?? null
+  const homeFromPrediction = !match.home_team && !!predictedSlot?.home.fromPrediction
+  const awayFromPrediction = !match.away_team && !!predictedSlot?.away.fromPrediction
   const homeName = homeTeam?.name ?? match.placeholder_home ?? t('common.tbd')
   const awayName = awayTeam?.name ?? match.placeholder_away ?? t('common.tbd')
   const homeFlag = homeTeam?.flag_emoji ?? ''
@@ -155,7 +161,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
               title={t('knockout.pickWinnerTitle')}
             />
           )}
-          <span className="truncate text-sm font-medium text-slate-200">
+          <span className={`truncate text-sm font-medium ${homeFromPrediction ? 'text-sky-300 italic' : 'text-slate-200'}`}>
             {homeFlag} {homeName}
           </span>
         </div>
@@ -177,7 +183,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
               title={t('knockout.pickWinnerTitle')}
             />
           )}
-          <span className="truncate text-sm font-medium text-slate-200">
+          <span className={`truncate text-sm font-medium ${awayFromPrediction ? 'text-sky-300 italic' : 'text-slate-200'}`}>
             {awayFlag} {awayName}
           </span>
         </div>
@@ -216,6 +222,9 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       )}
       {slotsUnfilled && (
         <p className="mt-2 text-center text-xs text-slate-500">{t('knockout.teamsTbd')}</p>
+      )}
+      {(homeFromPrediction || awayFromPrediction) && !slotsUnfilled && (
+        <p className="mt-2 text-center text-[10px] text-sky-400/70">{t('knockout.fromYourPicks')}</p>
       )}
     </div>
   )

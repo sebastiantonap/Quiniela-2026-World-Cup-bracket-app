@@ -200,6 +200,7 @@ export const en = {
   'bracket.groupOne': '{count} group',
   'bracket.groupOther': '{count} groups',
   'bracket.unresolvedSuffix': 'have tied positions that need manual resolution before your bracket is complete.',
+  'bracket.knockoutBracket': 'Knockout Bracket',
 
   // ---- results ----
   'results.title': 'Results',
@@ -240,6 +241,7 @@ export const en = {
   'knockout.pensLabel': 'Pens',
   'knockout.penaltiesHint': 'Tie — predict the shootout and pick who advances',
   'knockout.penPredicted': 'Your pens: {home}–{away}',
+  'knockout.fromYourPicks': 'Teams from your bracket picks',
 
   // ---- third place selector ----
   'third.subtitle': '{count}/12 groups predicted · select the 8 that advance to {round}',

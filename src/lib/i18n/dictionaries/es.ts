@@ -198,6 +198,7 @@ export const es: Dictionary = {
   'bracket.groupOne': '{count} grupo',
   'bracket.groupOther': '{count} grupos',
   'bracket.unresolvedSuffix': 'tienen posiciones empatadas que necesitan resolverse manualmente antes de que tu cuadro esté completo.',
+  'bracket.knockoutBracket': 'Cuadro Eliminatorias',
 
   // ---- results ----
   'results.title': 'Resultados',
@@ -238,6 +239,7 @@ export const es: Dictionary = {
   'knockout.pensLabel': 'Penales',
   'knockout.penaltiesHint': 'Empate — predice los penales y elige quién avanza',
   'knockout.penPredicted': 'Tus penales: {home}–{away}',
+  'knockout.fromYourPicks': 'Equipos de tus pronósticos',
 
   // ---- third place selector ----
   'third.subtitle': '{count}/12 grupos pronosticados · selecciona los 8 que avanzan a {round}',
