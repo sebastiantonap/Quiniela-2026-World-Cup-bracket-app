@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
 import { useT } from '@/lib/i18n/I18nProvider'
@@ -28,6 +28,21 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   )
   const [localHomePen, setLocalHomePen] = useState<number | null>(prediction?.predicted_home_penalties ?? null)
   const [localAwayPen, setLocalAwayPen] = useState<number | null>(prediction?.predicted_away_penalties ?? null)
+
+  // Sync local state when the parent prediction changes externally (e.g. cascade clear)
+  useEffect(() => {
+    setLocalHome(prediction?.predicted_home ?? null)
+    setLocalAway(prediction?.predicted_away ?? null)
+    setLocalWinner(prediction?.predicted_winner_team_id ?? null)
+    setLocalHomePen(prediction?.predicted_home_penalties ?? null)
+    setLocalAwayPen(prediction?.predicted_away_penalties ?? null)
+  }, [
+    prediction?.predicted_home,
+    prediction?.predicted_away,
+    prediction?.predicted_winner_team_id,
+    prediction?.predicted_home_penalties,
+    prediction?.predicted_away_penalties,
+  ])
 
   // Use DB teams first, fall back to user-predicted teams
   const homeTeam = match.home_team ?? predictedSlot?.home.team ?? null

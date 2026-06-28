@@ -300,6 +300,9 @@ export function BracketShell({
           onUpdate={handleKnockoutUpdate}
           saving={saving}
           eligibility={knockoutEligibility}
+          roundMap={roundMap}
+          readOnly={readOnly}
+          revealedRounds={revealedSet}
         />
       ) : null}
     </div>
