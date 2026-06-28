@@ -6,12 +6,14 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { fetchWCMatches, fetchWCTeams } from './footballData'
+import { recalculateRound } from '@/lib/scoring/recalculate'
 import type { FdMatch } from './footballData'
 
 export interface SyncResult {
   matchesSeen: number
   matchesChanged: number
   driftCount: number
+  roundsRecalculated: number
   errors: string[]
 }
 
@@ -19,6 +21,7 @@ interface LocalMatch {
   id: string
   fd_match_id: number | null
   match_number: number
+  round_id: string
   home_team_id: string | null
   away_team_id: string | null
   home_score: number | null
@@ -73,7 +76,7 @@ function hasDrift(local: LocalMatch, apiMatch: FdMatch, swapped: boolean): boole
 
 export async function runSync(): Promise<SyncResult> {
   const supabase = getSupabaseAdminClient()
-  const result: SyncResult = { matchesSeen: 0, matchesChanged: 0, driftCount: 0, errors: [] }
+  const result: SyncResult = { matchesSeen: 0, matchesChanged: 0, driftCount: 0, roundsRecalculated: 0, errors: [] }
 
   // Create sync_runs row
   const { data: syncRun } = await supabase
@@ -90,7 +93,7 @@ export async function runSync(): Promise<SyncResult> {
     // Load local matches that have fd_match_id set
     const { data: localMatches } = await supabase
       .from('matches')
-      .select('id, fd_match_id, match_number, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id, result_confirmed, is_manual_override, api_home_score, api_away_score, api_status')
+      .select('id, fd_match_id, match_number, round_id, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id, result_confirmed, is_manual_override, api_home_score, api_away_score, api_status')
 
     if (!localMatches) {
       result.errors.push('Failed to fetch local matches')
@@ -121,6 +124,7 @@ export async function runSync(): Promise<SyncResult> {
     }
 
     const now = new Date().toISOString()
+    const affectedRoundIds = new Set<string>()
 
     for (const apiMatch of apiMatches) {
       const local = byFdId.get(apiMatch.id)
@@ -222,6 +226,26 @@ export async function runSync(): Promise<SyncResult> {
       }
 
       result.matchesChanged++
+      affectedRoundIds.add(local.round_id)
+    }
+
+    // Recalculate points for affected rounds
+    const benignErrors = new Set([
+      'No confirmed results in this round',
+      'No predictions found for confirmed matches',
+    ])
+    for (const roundId of Array.from(affectedRoundIds)) {
+      try {
+        const recalcResult = await recalculateRound(roundId)
+        if (recalcResult.error && !benignErrors.has(recalcResult.error)) {
+          result.errors.push(`Recalculate round ${roundId}: ${recalcResult.error}`)
+        } else {
+          result.roundsRecalculated++
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        result.errors.push(`Recalculate round ${roundId}: ${msg}`)
+      }
     }
 
     // Update sync_runs

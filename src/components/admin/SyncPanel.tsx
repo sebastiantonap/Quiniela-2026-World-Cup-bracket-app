@@ -36,6 +36,7 @@ export function SyncPanel({ syncRuns, hasTeamMapping, hasMatchMapping, driftCoun
             seen: data.matchesSeen,
             changed: data.matchesChanged,
             drift: data.driftCount,
+            recalculated: data.roundsRecalculated,
           })
         )
       }

@@ -300,7 +300,7 @@ export const es: Dictionary = {
   // ---- admin: sync ----
   'admin.sync.title': 'Sincronización football-data.org',
   'admin.sync.syncNow': 'Sincronizar ahora',
-  'admin.sync.syncResult': 'Vistos: {seen}, Cambiados: {changed}, Discrepancias: {drift}',
+  'admin.sync.syncResult': 'Vistos: {seen}, Cambiados: {changed}, Discrepancias: {drift}, Rondas recalculadas: {recalculated}',
   'admin.sync.driftWarning': '{count} partido(s) con discrepancia — el resultado de la API difiere de la modificación manual.',
   'admin.sync.lastRun': 'Última sincronización: {time}',
   'admin.sync.mappingTitle': 'Configuración de Mapeo',

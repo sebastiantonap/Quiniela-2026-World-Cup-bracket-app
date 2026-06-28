@@ -302,7 +302,7 @@ export const en = {
   // ---- admin: sync ----
   'admin.sync.title': 'football-data.org Sync',
   'admin.sync.syncNow': 'Sync Now',
-  'admin.sync.syncResult': 'Seen: {seen}, Changed: {changed}, Drift: {drift}',
+  'admin.sync.syncResult': 'Seen: {seen}, Changed: {changed}, Drift: {drift}, Rounds recalculated: {recalculated}',
   'admin.sync.driftWarning': '{count} match(es) have drift — API score differs from manual override.',
   'admin.sync.lastRun': 'Last sync: {time}',
   'admin.sync.mappingTitle': 'Mapping Setup',
