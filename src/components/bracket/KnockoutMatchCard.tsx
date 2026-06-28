@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ScoreInput } from './ScoreInput'
 import { PointsBadge } from '@/components/ui/Badge'
 import { useT } from '@/lib/i18n/I18nProvider'
@@ -17,15 +17,33 @@ interface KnockoutMatchCardProps {
   eligibility: KnockoutEligibility | undefined
   /** Teams resolved from user predictions when the DB hasn't assigned teams yet. */
   predictedSlot?: PredictedMatch
+  /** Use compact layout for bracket view. */
+  compact?: boolean
 }
 
-export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility, predictedSlot }: KnockoutMatchCardProps) {
+/** Derive the winning team id from regulation + penalty scores. */
+function deriveWinner(
+  homeScore: number | null,
+  awayScore: number | null,
+  homePen: number | null,
+  awayPen: number | null,
+  homeTeamId: string | undefined,
+  awayTeamId: string | undefined,
+): string | null {
+  if (homeScore === null || awayScore === null) return null
+  if (homeScore > awayScore) return homeTeamId ?? null
+  if (awayScore > homeScore) return awayTeamId ?? null
+  // Regulation tie — check penalties
+  if (homePen !== null && awayPen !== null && homePen !== awayPen) {
+    return homePen > awayPen ? (homeTeamId ?? null) : (awayTeamId ?? null)
+  }
+  return null
+}
+
+export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, saving, eligibility, predictedSlot, compact }: KnockoutMatchCardProps) {
   const t = useT()
   const [localHome, setLocalHome] = useState<number | null>(prediction?.predicted_home ?? null)
   const [localAway, setLocalAway] = useState<number | null>(prediction?.predicted_away ?? null)
-  const [localWinner, setLocalWinner] = useState<string | null>(
-    prediction?.predicted_winner_team_id ?? null
-  )
   const [localHomePen, setLocalHomePen] = useState<number | null>(prediction?.predicted_home_penalties ?? null)
   const [localAwayPen, setLocalAwayPen] = useState<number | null>(prediction?.predicted_away_penalties ?? null)
 
@@ -33,7 +51,6 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   useEffect(() => {
     setLocalHome(prediction?.predicted_home ?? null)
     setLocalAway(prediction?.predicted_away ?? null)
-    setLocalWinner(prediction?.predicted_winner_team_id ?? null)
     setLocalHomePen(prediction?.predicted_home_penalties ?? null)
     setLocalAwayPen(prediction?.predicted_away_penalties ?? null)
   }, [
@@ -76,14 +93,27 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   // A knockout match the user predicts as a regulation tie goes to penalties.
   const isTie = localHome !== null && localAway !== null && localHome === localAway
 
+  // Auto-derive winner from scores/penalties; fall back to persisted winner
+  // for backward compatibility with predictions saved under the old radio-button flow.
+  const computedWinner = deriveWinner(localHome, localAway, localHomePen, localAwayPen, homeTeam?.id, awayTeam?.id)
+    ?? prediction?.predicted_winner_team_id ?? null
+
+  // Emit update to parent with auto-computed winner
+  const emitUpdate = useCallback(
+    (home: number | null, away: number | null, hp: number | null, ap: number | null) => {
+      const winner = deriveWinner(home, away, hp, ap, homeTeam?.id, awayTeam?.id)
+      onUpdate(home, away, winner, hp, ap)
+    },
+    [onUpdate, homeTeam?.id, awayTeam?.id],
+  )
+
   function handleHomeChange(val: number | null) {
-    // Leaving a tie clears any predicted shootout.
     const stillTie = val !== null && localAway !== null && val === localAway
     const hp = stillTie ? localHomePen : null
     const ap = stillTie ? localAwayPen : null
     setLocalHome(val)
     if (!stillTie) { setLocalHomePen(null); setLocalAwayPen(null) }
-    onUpdate(val, localAway, localWinner, hp, ap)
+    emitUpdate(val, localAway, hp, ap)
   }
   function handleAwayChange(val: number | null) {
     const stillTie = localHome !== null && val !== null && localHome === val
@@ -91,21 +121,20 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
     const ap = stillTie ? localAwayPen : null
     setLocalAway(val)
     if (!stillTie) { setLocalHomePen(null); setLocalAwayPen(null) }
-    onUpdate(localHome, val, localWinner, hp, ap)
-  }
-  function handleWinnerChange(teamId: string) {
-    const newWinner = localWinner === teamId ? null : teamId
-    setLocalWinner(newWinner)
-    onUpdate(localHome, localAway, newWinner, localHomePen, localAwayPen)
+    emitUpdate(localHome, val, hp, ap)
   }
   function handleHomePenChange(val: number | null) {
     setLocalHomePen(val)
-    onUpdate(localHome, localAway, localWinner, val, localAwayPen)
+    emitUpdate(localHome, localAway, val, localAwayPen)
   }
   function handleAwayPenChange(val: number | null) {
     setLocalAwayPen(val)
-    onUpdate(localHome, localAway, localWinner, localHomePen, val)
+    emitUpdate(localHome, localAway, localHomePen, val)
   }
+
+  // Visual indicator for who is winning
+  const homeIsWinner = computedWinner != null && computedWinner === homeTeam?.id
+  const awayIsWinner = computedWinner != null && computedWinner === awayTeam?.id
 
   function renderTrailing(teamId: string | undefined, localScore: number | null, onScoreChange: (v: number | null) => void, predicted: number | null | undefined) {
     if (selectionLocked) {
@@ -132,11 +161,11 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
 
   return (
     <div
-      className={`rounded-xl border bg-slate-800 p-4 ${
+      className={`rounded-xl border bg-slate-800 ${compact ? 'p-2.5' : 'p-4'} ${
         slotsUnfilled || isVoid ? 'opacity-60' : ''
       } ${borderClass}`}
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className={`${compact ? 'mb-1.5' : 'mb-3'} flex items-center justify-between`}>
         <span className="text-xs font-medium text-slate-500">#{match.match_number}</span>
         {hasResult && pts !== null && pts !== undefined && (
           pts > 0
@@ -147,58 +176,50 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       </div>
 
       {/* Eligibility status banner */}
-      {showEligibility && status === 'full' && (
+      {!compact && showEligibility && status === 'full' && (
         <div className="mb-3 rounded-lg border border-emerald-800/40 bg-emerald-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-emerald-400">
           {t('knockout.fullScoring')}
         </div>
       )}
-      {showEligibility && isPartial && (
+      {!compact && showEligibility && isPartial && (
         <div className="mb-3 rounded-lg border border-amber-800/40 bg-amber-900/20 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-400">
           {t('knockout.forced', { name: forcedName })}
         </div>
       )}
-      {showEligibility && isVoid && (
+      {!compact && showEligibility && isVoid && (
         <div className="mb-3 rounded-lg border border-slate-600 bg-slate-700/40 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-400">
           {t('knockout.void')}
         </div>
       )}
 
       {/* Home team */}
-      <div className="flex items-center justify-between gap-2 py-1.5">
+      <div className={`flex items-center justify-between gap-2 ${compact ? 'py-1' : 'py-1.5'}`}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {effectiveEditable && homeTeam && !selectionLocked && (
-            <input
-              type="radio"
-              name={`winner-${match.id}`}
-              checked={localWinner === homeTeam.id}
-              onChange={() => handleWinnerChange(homeTeam.id)}
-              className="accent-amber-500"
-              title={t('knockout.pickWinnerTitle')}
-            />
+          {homeIsWinner && (
+            <span className="text-[10px] text-emerald-400">▶</span>
           )}
-          <span className={`truncate text-sm font-medium ${homeFromPrediction ? 'text-sky-300 italic' : 'text-slate-200'}`}>
+          <span className={`truncate text-sm font-medium ${
+            homeFromPrediction ? 'text-sky-300 italic' :
+            homeIsWinner ? 'text-emerald-300 font-semibold' : 'text-slate-200'
+          }`}>
             {homeFlag} {homeName}
           </span>
         </div>
         {renderTrailing(homeTeam?.id, localHome, handleHomeChange, prediction?.predicted_home)}
       </div>
 
-      <div className="border-t border-slate-700 py-0.5 text-center text-xs text-slate-500">{t('common.vs')}</div>
+      <div className={`border-t border-slate-700 ${compact ? 'py-0' : 'py-0.5'} text-center text-xs text-slate-500`}>{t('common.vs')}</div>
 
       {/* Away team */}
-      <div className="flex items-center justify-between gap-2 py-1.5">
+      <div className={`flex items-center justify-between gap-2 ${compact ? 'py-1' : 'py-1.5'}`}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {effectiveEditable && awayTeam && !selectionLocked && (
-            <input
-              type="radio"
-              name={`winner-${match.id}`}
-              checked={localWinner === awayTeam.id}
-              onChange={() => handleWinnerChange(awayTeam.id)}
-              className="accent-amber-500"
-              title={t('knockout.pickWinnerTitle')}
-            />
+          {awayIsWinner && (
+            <span className="text-[10px] text-emerald-400">▶</span>
           )}
-          <span className={`truncate text-sm font-medium ${awayFromPrediction ? 'text-sky-300 italic' : 'text-slate-200'}`}>
+          <span className={`truncate text-sm font-medium ${
+            awayFromPrediction ? 'text-sky-300 italic' :
+            awayIsWinner ? 'text-emerald-300 font-semibold' : 'text-slate-200'
+          }`}>
             {awayFlag} {awayName}
           </span>
         </div>
@@ -220,17 +241,12 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
         </p>
       )}
 
-      {effectiveEditable && !selectionLocked && isTie && (
+      {!compact && effectiveEditable && !selectionLocked && isTie && (
         <p className="mt-2 text-center text-xs text-slate-500">
           {t('knockout.penaltiesHint')}
         </p>
       )}
-      {effectiveEditable && status === 'full' && !isTie && (
-        <p className="mt-2 text-center text-xs text-slate-500">
-          {t('knockout.selectWinner')}
-        </p>
-      )}
-      {effectiveEditable && isPartial && (
+      {!compact && effectiveEditable && isPartial && (
         <p className="mt-2 text-center text-xs text-slate-500">
           {t('knockout.winnerForced', { name: forcedName })}
         </p>
@@ -238,7 +254,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
       {slotsUnfilled && (
         <p className="mt-2 text-center text-xs text-slate-500">{t('knockout.teamsTbd')}</p>
       )}
-      {(homeFromPrediction || awayFromPrediction) && !slotsUnfilled && (
+      {!compact && (homeFromPrediction || awayFromPrediction) && !slotsUnfilled && (
         <p className="mt-2 text-center text-[10px] text-sky-400/70">{t('knockout.fromYourPicks')}</p>
       )}
     </div>
