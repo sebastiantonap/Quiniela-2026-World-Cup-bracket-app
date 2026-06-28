@@ -13,14 +13,14 @@ export interface KnockoutEligibility {
 /**
  * Maps each knockout round to the round whose winner picks decide eligibility for it.
  * round_of_32 is omitted — its eligibility comes from the group-stage picks set.
- * Note the special cases: both `final` (SF winners) and `third_place` (SF losers) key off
- * the semifinals, since those are the matches each team last played before this stage.
+ * `final` keys off the SF (SF winners go to the Final).
+ * `third_place` keys off the QF (SF losers = QF winners who lost in the SF).
  */
 export const PREV_ELIGIBILITY_ROUND: Partial<Record<RoundName, RoundName>> = {
   round_of_16: 'round_of_32',
   quarterfinals: 'round_of_16',
   semifinals: 'quarterfinals',
-  third_place: 'semifinals',
+  third_place: 'quarterfinals',
   final: 'semifinals',
 }
 
