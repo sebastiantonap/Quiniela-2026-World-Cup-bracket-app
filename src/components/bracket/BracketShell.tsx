@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { GroupStageTab } from './GroupStageTab'
 import { KnockoutBracketView } from './KnockoutBracketView'
 import { ResultsTab } from './ResultsTab'
@@ -168,6 +168,29 @@ export function BracketShell({
     }
     return result
   }, [matchesByRound, predictions, eligibilitySet, predictedSlots])
+
+  // Auto-persist forced winners for partial matches so they cascade to
+  // downstream rounds via resolveUserBracket. This also handles the
+  // "one team filled, other TBD" case: classifyKnockoutMatch returns
+  // partial when one team is eligible and the other slot is null, so
+  // the auto-advance chains through the entire bracket.
+  useEffect(() => {
+    for (const [matchId, elig] of Object.entries(knockoutEligibility)) {
+      if (
+        elig.status === 'partial' &&
+        elig.forcedWinnerTeamId &&
+        predictions[matchId]?.predicted_winner_team_id !== elig.forcedWinnerTeamId
+      ) {
+        updatePrediction(matchId, {
+          predictedHome: predictions[matchId]?.predicted_home ?? null,
+          predictedAway: predictions[matchId]?.predicted_away ?? null,
+          predictedHomePenalties: predictions[matchId]?.predicted_home_penalties ?? null,
+          predictedAwayPenalties: predictions[matchId]?.predicted_away_penalties ?? null,
+          predictedWinnerTeamId: elig.forcedWinnerTeamId,
+        })
+      }
+    }
+  }, [knockoutEligibility]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleGroupUpdate(matchId: string, home: number | null, away: number | null) {
     updatePrediction(matchId, { predictedHome: home, predictedAway: away, predictedWinnerTeamId: null })
