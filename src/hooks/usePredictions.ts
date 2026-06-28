@@ -95,5 +95,40 @@ export function usePredictions(
     [entryId, savePrediction]
   )
 
-  return { predictions, updatePrediction, saving, errors }
+  const clearPrediction = useCallback(
+    (matchId: string) => {
+      // Cancel any pending save
+      if (debounceTimers.current[matchId]) {
+        clearTimeout(debounceTimers.current[matchId])
+        delete debounceTimers.current[matchId]
+      }
+
+      // Clear the prediction locally and persist
+      const cleared: PredictionState = {
+        predictedHome: null,
+        predictedAway: null,
+        predictedHomePenalties: null,
+        predictedAwayPenalties: null,
+        predictedWinnerTeamId: null,
+      }
+      setPredictions((prev) => {
+        const next = { ...prev }
+        if (next[matchId]) {
+          next[matchId] = {
+            ...next[matchId],
+            predicted_home: null,
+            predicted_away: null,
+            predicted_home_penalties: null,
+            predicted_away_penalties: null,
+            predicted_winner_team_id: null,
+          }
+        }
+        return next
+      })
+      savePrediction(matchId, cleared)
+    },
+    [savePrediction],
+  )
+
+  return { predictions, updatePrediction, clearPrediction, saving, errors }
 }
