@@ -174,9 +174,12 @@ export function BracketShell({
   }
 
   function handleKnockoutUpdate(matchId: string, home: number | null, away: number | null, winnerId: string | null, homePens: number | null, awayPens: number | null) {
-    // Find and clear downstream predictions whose teams changed
+    // Only cascade-clear downstream predictions when the winner explicitly
+    // changes from one team to another. A null winner (incomplete prediction,
+    // e.g. tie without penalties) should NOT trigger a cascade — the user is
+    // still mid-edit.
     const prevWinner = predictions[matchId]?.predicted_winner_team_id ?? null
-    if (prevWinner !== winnerId) {
+    if (winnerId !== null && prevWinner !== null && prevWinner !== winnerId) {
       const stale = findStaleDownstream(matchId, matchesByRound, predictions)
       stale.forEach((staleId) => {
         clearPrediction(staleId)

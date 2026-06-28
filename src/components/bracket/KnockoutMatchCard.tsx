@@ -93,8 +93,10 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   // A knockout match the user predicts as a regulation tie goes to penalties.
   const isTie = localHome !== null && localAway !== null && localHome === localAway
 
-  // Auto-derive winner from scores/penalties
+  // Auto-derive winner from scores/penalties; fall back to persisted winner
+  // for backward compatibility with predictions saved under the old radio-button flow.
   const computedWinner = deriveWinner(localHome, localAway, localHomePen, localAwayPen, homeTeam?.id, awayTeam?.id)
+    ?? prediction?.predicted_winner_team_id ?? null
 
   // Emit update to parent with auto-computed winner
   const emitUpdate = useCallback(
