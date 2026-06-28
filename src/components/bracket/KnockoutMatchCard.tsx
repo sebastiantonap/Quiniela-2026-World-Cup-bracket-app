@@ -151,7 +151,7 @@ export function KnockoutMatchCard({ match, prediction, isEditable, onUpdate, sav
   return (
     <div
       className={`rounded-xl border bg-slate-800 ${compact ? 'p-2.5' : 'p-4'} ${
-        slotsUnfilled ? 'opacity-60' : ''
+        slotsUnfilled || isVoid ? 'opacity-60' : ''
       } ${borderClass}`}
     >
       <div className={`${compact ? 'mb-1.5' : 'mb-3'} flex items-center justify-between`}>

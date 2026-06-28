@@ -285,40 +285,53 @@ export function KnockoutBracketView({
                                 compact
                               />
                             </div>
-                            {/* 3rd place directly under the Final card */}
-                            {isFinalCol && thirdPlaceMatches.length > 0 && (
-                              <div className="mt-6">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                                    {roundLabel(t, 'third_place')}
-                                  </span>
-                                  {thirdPlaceRound && <RoundStatusBadge status={thirdPlaceRound.status} />}
-                                </div>
-                                {thirdPlaceHidden ? (
-                                  <div className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-4 text-center text-xs text-slate-400">
-                                    {t('bracket.hiddenUntilLocked')}
-                                  </div>
-                                ) : (
-                                  thirdPlaceMatches.map((tpMatch) => (
-                                    <MatchCardWrapper
-                                      key={tpMatch.id}
-                                      match={tpMatch}
-                                      predictions={predictions}
-                                      isEditable={thirdPlaceEditable}
-                                      onUpdate={onUpdate}
-                                      saving={saving}
-                                      eligibility={eligibility}
-                                      predictedSlots={predictedSlots}
-                                      compact
-                                    />
-                                  ))
-                                )}
-                              </div>
-                            )}
+
                           </div>
                         )
                       })
                     )}
+
+                    {/* 3rd place directly under the Final card — rendered
+                        independently of isHidden so it stays visible when
+                        the Final round is still hidden but third_place is revealed. */}
+                    {isFinalCol && thirdPlaceMatches.length > 0 && (() => {
+                      const slotsPerMatchFinal = baseMatchCount > 0 ? baseMatchCount / (nodes.length || 1) : 1
+                      const matchSpacingFinal = slotsPerMatchFinal * (CARD_H + BASE_GAP) - BASE_GAP
+                      const topOffsetFinal = (matchSpacingFinal - CARD_H) / 2
+                      const lastNode = nodes[nodes.length - 1]
+                      const finalBottom = lastNode
+                        ? lastNode.slotIndex * (matchSpacingFinal + BASE_GAP) + topOffsetFinal + CARD_H + 20 + 24
+                        : topOffsetFinal + CARD_H + 20 + 24
+                      return (
+                        <div className="absolute left-0 right-0" style={{ top: finalBottom }}>
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                              {roundLabel(t, 'third_place')}
+                            </span>
+                            {thirdPlaceRound && <RoundStatusBadge status={thirdPlaceRound.status} />}
+                          </div>
+                          {thirdPlaceHidden ? (
+                            <div className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-4 text-center text-xs text-slate-400">
+                              {t('bracket.hiddenUntilLocked')}
+                            </div>
+                          ) : (
+                            thirdPlaceMatches.map((tpMatch) => (
+                              <MatchCardWrapper
+                                key={tpMatch.id}
+                                match={tpMatch}
+                                predictions={predictions}
+                                isEditable={thirdPlaceEditable}
+                                onUpdate={onUpdate}
+                                saving={saving}
+                                eligibility={eligibility}
+                                predictedSlots={predictedSlots}
+                                compact
+                              />
+                            ))
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* Connector lines */}
                     {colIndex < activeBracketRounds.length - 1 && !isHidden && (
