@@ -206,6 +206,8 @@ export const es: Dictionary = {
   'results.roundTotal': 'Total de ronda',
   'results.yourPrediction': 'Tu pronóstico',
   'results.actualResult': 'Resultado real',
+  'results.winner': 'Ganador',
+  'results.pen': 'PEN',
 
   // ---- best 8 trigger / group stage tab ----
   'best8.title': 'Los 8 Mejores Terceros',

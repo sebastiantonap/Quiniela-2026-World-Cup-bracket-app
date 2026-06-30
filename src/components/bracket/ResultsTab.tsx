@@ -44,31 +44,52 @@ export function ResultsTab({ matches, predictions, rounds, totalPoints }: Result
 
   function formatPrediction(pred: Prediction | undefined, match: MatchWithTeams): string {
     if (!pred) return '—'
-    if (match.round?.name === 'group_stage') {
-      const home = pred.predicted_home !== null ? pred.predicted_home : '—'
-      const away = pred.predicted_away !== null ? pred.predicted_away : '—'
-      return `${home}–${away}`
-    } else {
-      // Knockout: show predicted winner
-      const winner = predictions[match.id]?.predicted_winner_team_id
-      if (winner === match.home_team_id) return `${match.home_team?.flag_emoji} ${match.home_team?.name}`
-      if (winner === match.away_team_id) return `${match.away_team?.flag_emoji} ${match.away_team?.name}`
-      return '—'
+    const home = pred.predicted_home !== null ? pred.predicted_home : '—'
+    const away = pred.predicted_away !== null ? pred.predicted_away : '—'
+    let text = `${home}–${away}`
+
+    if (match.round?.name !== 'group_stage') {
+      if (pred.predicted_home_penalties != null && pred.predicted_away_penalties != null) {
+        text += ` (${t('results.pen')} ${pred.predicted_home_penalties}–${pred.predicted_away_penalties})`
+      }
     }
+    return text
   }
 
   function formatActualResult(match: MatchWithTeams): string {
     if (!match.result_confirmed) return '—'
-    if (match.round?.name === 'group_stage') {
-      const home = match.home_score !== null ? match.home_score : '—'
-      const away = match.away_score !== null ? match.away_score : '—'
-      return `${home}–${away}`
-    } else {
-      // Knockout: show actual winner
-      if (match.winner_team_id === match.home_team_id) return `${match.home_team?.flag_emoji} ${match.home_team?.name}`
-      if (match.winner_team_id === match.away_team_id) return `${match.away_team?.flag_emoji} ${match.away_team?.name}`
-      return '—'
+    const home = match.home_score !== null ? match.home_score : '—'
+    const away = match.away_score !== null ? match.away_score : '—'
+    let text = `${home}–${away}`
+
+    if (match.round?.name !== 'group_stage') {
+      if (match.home_penalties != null && match.away_penalties != null) {
+        text += ` (${t('results.pen')} ${match.home_penalties}–${match.away_penalties})`
+      }
     }
+    return text
+  }
+
+  function formatPredictedWinner(pred: Prediction | undefined, match: MatchWithTeams): string {
+    if (!pred || match.round?.name === 'group_stage') return ''
+    if (pred.predicted_winner_team_id === match.home_team_id) {
+      return `${match.home_team?.flag_emoji ?? ''} ${match.home_team?.name ?? ''}`
+    }
+    if (pred.predicted_winner_team_id === match.away_team_id) {
+      return `${match.away_team?.flag_emoji ?? ''} ${match.away_team?.name ?? ''}`
+    }
+    return '—'
+  }
+
+  function formatActualWinner(match: MatchWithTeams): string {
+    if (!match.result_confirmed || match.round?.name === 'group_stage') return ''
+    if (match.winner_team_id === match.home_team_id) {
+      return `${match.home_team?.flag_emoji ?? ''} ${match.home_team?.name ?? ''}`
+    }
+    if (match.winner_team_id === match.away_team_id) {
+      return `${match.away_team?.flag_emoji ?? ''} ${match.away_team?.name ?? ''}`
+    }
+    return '—'
   }
 
   return (
@@ -105,6 +126,9 @@ export function ResultsTab({ matches, predictions, rounds, totalPoints }: Result
                     <th className="px-3 py-2 text-left">{t('common.match')}</th>
                     <th className="px-3 py-2 text-left">{t('results.yourPrediction')}</th>
                     <th className="px-3 py-2 text-left">{t('results.actualResult')}</th>
+                    {roundName !== 'group_stage' && (
+                      <th className="px-3 py-2 text-left">{t('results.winner')}</th>
+                    )}
                     <th className="w-16 px-3 py-2 text-right">{t('common.pts')}</th>
                   </tr>
                 </thead>
@@ -123,6 +147,14 @@ export function ResultsTab({ matches, predictions, rounds, totalPoints }: Result
                         </td>
                         <td className="px-3 py-2 text-xs text-slate-300">{formatPrediction(pred, match)}</td>
                         <td className="px-3 py-2 text-xs text-slate-300">{formatActualResult(match)}</td>
+                        {roundName !== 'group_stage' && (
+                          <td className="px-3 py-2 text-xs text-slate-300">
+                            <div>{formatPredictedWinner(pred, match)}</div>
+                            {match.result_confirmed && (
+                              <div className="text-slate-500">{formatActualWinner(match)}</div>
+                            )}
+                          </td>
+                        )}
                         <td className="px-3 py-2 text-right">
                           {!isConfirmed ? (
                             <span className="text-slate-500">—</span>

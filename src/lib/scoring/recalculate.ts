@@ -306,6 +306,14 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
 
     const updatedPredictions = predictions.map((pred) => {
       const match = matchMap.get(pred.match_id)!
+
+      // Defensive: skip scoring for knockout matches missing winner_team_id.
+      // Returning null avoids overwriting a previously correct score with 0
+      // when match data is temporarily invalid (e.g. after revertToApi for penalty matches).
+      if (isKnockout && match.winner_team_id === null) {
+        return { id: pred.id, entry_id: pred.entry_id, points_awarded: null, qualification_gated: false }
+      }
+
       let points = calculatePoints(
         {
           predicted_home: pred.predicted_home,
@@ -352,6 +360,8 @@ export async function recalculateRound(roundId: string): Promise<{ error?: strin
     })
 
     for (const pred of updatedPredictions) {
+      // Skip predictions where scoring was deferred (null winner_team_id in knockout)
+      if (pred.points_awarded === null) continue
       await supabase
         .from('predictions')
         .update({ points_awarded: pred.points_awarded, qualification_gated: pred.qualification_gated, calculated_at: now })
