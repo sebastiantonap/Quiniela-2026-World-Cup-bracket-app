@@ -215,7 +215,7 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
 
   const { data: match, error: fetchError } = await admin
     .from('matches')
-    .select('home_score, away_score, api_home_score, api_away_score, api_status, home_team_id, away_team_id, round:rounds(name)')
+    .select('home_score, away_score, api_home_score, api_away_score, api_home_penalties, api_away_penalties, api_status, home_team_id, away_team_id, round:rounds(name)')
     .eq('id', matchId)
     .single()
 
@@ -230,11 +230,20 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
   const isKnockout = roundName !== undefined && roundName !== 'group_stage'
 
   let winnerTeamId: string | null = null
+  let homePens: number | null = null
+  let awayPens: number | null = null
   if (isKnockout && match.home_team_id && match.away_team_id) {
     if (match.api_home_score > match.api_away_score) {
       winnerTeamId = match.home_team_id
     } else if (match.api_away_score > match.api_home_score) {
       winnerTeamId = match.away_team_id
+    } else {
+      // Regulation tie — use API penalty data
+      homePens = match.api_home_penalties ?? null
+      awayPens = match.api_away_penalties ?? null
+      if (homePens !== null && awayPens !== null && homePens !== awayPens) {
+        winnerTeamId = homePens > awayPens ? match.home_team_id : match.away_team_id
+      }
     }
   }
 
@@ -243,8 +252,8 @@ export async function revertToApi(matchId: string): Promise<{ error?: string }> 
     .update({
       home_score: match.api_home_score,
       away_score: match.api_away_score,
-      home_penalties: null,
-      away_penalties: null,
+      home_penalties: homePens,
+      away_penalties: awayPens,
       winner_team_id: winnerTeamId,
       result_confirmed: match.api_status === 'FINISHED',
       is_manual_override: false,
@@ -298,6 +307,8 @@ export async function clearAllResults(): Promise<{ error?: string }> {
         away_score: null,
         home_penalties: null,
         away_penalties: null,
+        api_home_penalties: null,
+        api_away_penalties: null,
         winner_team_id: null,
         result_confirmed: false,
         is_manual_override: false,

@@ -70,6 +70,8 @@ export interface Database {
           is_manual_override: boolean
           api_home_score: number | null
           api_away_score: number | null
+          api_home_penalties: number | null
+          api_away_penalties: number | null
           api_status: string | null
           last_synced_at: string | null
           created_at: string
