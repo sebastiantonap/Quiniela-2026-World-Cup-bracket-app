@@ -30,6 +30,8 @@ interface LocalMatch {
   is_manual_override: boolean
   api_home_score: number | null
   api_away_score: number | null
+  api_home_penalties: number | null
+  api_away_penalties: number | null
   api_status: string | null
 }
 
@@ -90,7 +92,7 @@ export async function runSync(): Promise<SyncResult> {
     // Load local matches that have fd_match_id set
     const { data: localMatches } = await supabase
       .from('matches')
-      .select('id, fd_match_id, match_number, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id, result_confirmed, is_manual_override, api_home_score, api_away_score, api_status')
+      .select('id, fd_match_id, match_number, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, winner_team_id, result_confirmed, is_manual_override, api_home_score, api_away_score, api_home_penalties, api_away_penalties, api_status')
 
     if (!localMatches) {
       result.errors.push('Failed to fetch local matches')
@@ -132,6 +134,11 @@ export async function runSync(): Promise<SyncResult> {
       const apiHomeUuid = apiMatch.homeTeam.id ? teamByFdId.get(apiMatch.homeTeam.id) ?? null : null
       const swapped = apiHomeUuid !== null && apiHomeUuid !== local.home_team_id
 
+      // Compute penalty values early so they are available for the api_* update
+      const pens = apiMatch.score.penalties ?? { home: null, away: null }
+      const homePens = pens.home !== null ? pens.home : null
+      const awayPens = pens.away !== null ? pens.away : null
+
       // Always update api_* columns, scheduled_at, and last_synced_at
       // api_home_score/api_away_score refer to the local match's home/away
       await supabase
@@ -139,6 +146,8 @@ export async function runSync(): Promise<SyncResult> {
         .update({
           api_home_score: swapped ? ft.away : ft.home,
           api_away_score: swapped ? ft.home : ft.away,
+          api_home_penalties: swapped ? awayPens : homePens,
+          api_away_penalties: swapped ? homePens : awayPens,
           api_status: apiMatch.status,
           scheduled_at: apiMatch.utcDate,
           last_synced_at: now,
@@ -170,18 +179,16 @@ export async function runSync(): Promise<SyncResult> {
         } else if (ft.away > ft.home) {
           winnerTeamId = awayTeamUuid
         } else {
-          // Draw or penalties
-          const pens = apiMatch.score.penalties
-          if (pens && pens.home !== null && pens.away !== null) {
-            winnerTeamId = pens.home > pens.away ? homeTeamUuid : awayTeamUuid
+          // Draw — check penalties first, then fall back to API winner field
+          if (homePens !== null && awayPens !== null) {
+            winnerTeamId = pens.home! > pens.away! ? homeTeamUuid : awayTeamUuid
+          } else if (apiMatch.score.winner === 'HOME_TEAM') {
+            winnerTeamId = homeTeamUuid
+          } else if (apiMatch.score.winner === 'AWAY_TEAM') {
+            winnerTeamId = awayTeamUuid
           }
         }
       }
-
-      // Penalty scores — swap to match local home/away order
-      const pens = apiMatch.score.penalties ?? { home: null, away: null }
-      const homePens = pens.home !== null ? pens.home : null
-      const awayPens = pens.away !== null ? pens.away : null
 
       // Update match — scores written relative to local match's home/away
       await supabase
