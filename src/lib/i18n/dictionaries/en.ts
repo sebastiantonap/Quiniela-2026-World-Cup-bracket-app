@@ -208,6 +208,10 @@ export const en = {
   'results.roundTotal': 'Round total',
   'results.yourPrediction': 'Your prediction',
   'results.actualResult': 'Actual result',
+  'results.winner': 'Winner',
+  'results.pickedWinner': 'Pick:',
+  'results.actualWinner': 'Actual:',
+  'results.pen': 'PEN',
 
   // ---- best 8 trigger / group stage tab ----
   'best8.title': 'Best 8 Third-Place Teams',
