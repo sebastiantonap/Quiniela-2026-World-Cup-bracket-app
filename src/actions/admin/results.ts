@@ -307,8 +307,6 @@ export async function clearAllResults(): Promise<{ error?: string }> {
         away_score: null,
         home_penalties: null,
         away_penalties: null,
-        api_home_penalties: null,
-        api_away_penalties: null,
         winner_team_id: null,
         result_confirmed: false,
         is_manual_override: false,
