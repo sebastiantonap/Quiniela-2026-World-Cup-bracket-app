@@ -207,6 +207,8 @@ export const es: Dictionary = {
   'results.yourPrediction': 'Tu pronóstico',
   'results.actualResult': 'Resultado real',
   'results.winner': 'Ganador',
+  'results.pickedWinner': 'Elegido:',
+  'results.actualWinner': 'Real:',
   'results.pen': 'PEN',
 
   // ---- best 8 trigger / group stage tab ----

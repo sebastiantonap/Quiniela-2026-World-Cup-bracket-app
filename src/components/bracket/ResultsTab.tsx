@@ -149,9 +149,9 @@ export function ResultsTab({ matches, predictions, rounds, totalPoints }: Result
                         <td className="px-3 py-2 text-xs text-slate-300">{formatActualResult(match)}</td>
                         {roundName !== 'group_stage' && (
                           <td className="px-3 py-2 text-xs text-slate-300">
-                            <div>{formatPredictedWinner(pred, match)}</div>
+                            <div><span className="text-slate-500">{t('results.pickedWinner')}</span> {formatPredictedWinner(pred, match)}</div>
                             {match.result_confirmed && (
-                              <div className="text-slate-500">{formatActualWinner(match)}</div>
+                              <div className="text-slate-500"><span>{t('results.actualWinner')}</span> {formatActualWinner(match)}</div>
                             )}
                           </td>
                         )}
